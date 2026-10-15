@@ -1,0 +1,1781 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <title>Vijith V.S | 3D FinTech, Enterprise .NET & Indie Game Studio Nexus</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-purple: #a855f7;
+      --accent-amber: #f59e0b;
+      --bg-obsidian: #050811;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #050811;
+      color: #f8fafc;
+      font-family: 'Inter', sans-serif;
+      user-select: none;
+    }
+    .font-display {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Custom Scrollbar for HUD Panel */
+    .hud-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .hud-scroll::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.4);
+    }
+    .hud-scroll::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.35);
+      border-radius: 9999px;
+    }
+    .hud-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(56, 189, 248, 0.65);
+    }
+    /* Glassmorphism & Cyber Borders */
+    .cyber-glass {
+      background: linear-gradient(145deg, rgba(10, 17, 34, 0.84) 0%, rgba(5, 10, 22, 0.92) 100%);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(56, 189, 248, 0.22);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+    .cyber-card {
+      background: rgba(15, 23, 42, 0.68);
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .cyber-card:hover {
+      border-color: rgba(56, 189, 248, 0.5);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px -8px rgba(6, 182, 212, 0.22);
+    }
+    /* 3D Projected Floating Markers */
+    .node-label-3d {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      pointer-events: auto;
+      cursor: pointer;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      z-index: 15;
+    }
+    .node-label-3d:hover {
+      transform: translate(-50%, -50%) scale(1.08);
+      z-index: 25;
+    }
+    @keyframes pulseRing {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 0.35; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .pulse-ring {
+      animation: pulseRing 2.4s infinite ease-in-out;
+    }
+    .scanline-overlay {
+      background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(6, 182, 212, 0.03) 50%, rgba(6, 182, 212, 0.03));
+      background-size: 100% 4px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body class="relative w-full h-full overflow-hidden bg-[#050811] text-slate-100">
+
+  <!-- 3D WebGL Canvas Container -->
+  <div id="canvas-container" class="fixed inset-0 z-0 w-full h-full cursor-grab active:cursor-grabbing"></div>
+
+  <!-- Subtle Scanline & Vignette Overlay -->
+  <div class="fixed inset-0 z-10 pointer-events-none scanline-overlay" style="box-shadow: inset 0 0 120px rgba(0,0,0,0.85);"></div>
+
+  <!-- Dynamic 3D Projected HTML Labels Container -->
+  <div id="labels-3d-container" class="fixed inset-0 z-10 pointer-events-none overflow-hidden"></div>
+
+  <!-- Top Telemetry Header Bar -->
+  <header class="fixed top-0 left-0 right-0 z-30 flex items-center justify-between px-3 py-2.5 sm:px-6 sm:py-3 cyber-glass border-t-0 border-x-0">
+    <div class="flex items-center gap-2.5 sm:gap-3.5">
+      <button id="btn-home-core" type="button" class="relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-emerald-500/20 border border-cyan-400/40 text-cyan-300 hover:border-cyan-300 transition group" title="Warp to Nexus Core">
+        <span class="font-display font-bold text-sm sm:text-base tracking-tighter group-hover:scale-110 transition">VS</span>
+        <span class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-[#050811]"></span>
+      </button>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="font-display font-bold text-sm sm:text-base md:text-lg tracking-tight text-white">VIJITH V.S</h1>
+          <span class="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono-code font-semibold uppercase tracking-wider bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+            Senior Software Engineer @ Intelliflo RedBlack
+          </span>
+        </div>
+        <p class="text-[11px] sm:text-xs text-slate-400 font-mono-code truncate max-w-[200px] sm:max-w-none">
+          12+ Yrs .NET &amp; Cloud OMS • VJ Group Play Studio • Quant Swing Trader
+        </p>
+      </div>
+    </div>
+
+    <!-- Right Controls: View Mode, Auto-Orbit, Audio, GitHub Pages Modal -->
+    <div class="flex items-center gap-1.5 sm:gap-2">
+      <!-- Layout Switcher (3D Full / Split / Panel Full) -->
+      <div class="flex items-center bg-slate-900/90 border border-slate-700/70 rounded-lg p-0.5 text-xs">
+        <button id="mode-3d-only" type="button" class="px-2 py-1 rounded-md text-slate-300 hover:text-white transition font-medium" title="Pure 3D Space Mode">
+          3D Space
+        </button>
+        <button id="mode-split" type="button" class="px-2 py-1 rounded-md bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 font-medium transition" title="Interactive Split HUD Mode">
+          Split HUD
+        </button>
+        <button id="mode-dossier" type="button" class="px-2 py-1 rounded-md text-slate-300 hover:text-white transition font-medium hidden sm:inline-block" title="Expanded Matrix View">
+          Full Dossier
+        </button>
+      </div>
+
+      <!-- Auto-Tour Toggle -->
+      <button id="btn-autotour" type="button" class="px-2.5 py-1.5 rounded-lg bg-slate-900/80 border border-slate-700/70 text-xs font-mono-code text-slate-300 hover:border-cyan-400/50 hover:text-cyan-300 transition flex items-center gap-1.5" title="Toggle Automated 3D Camera Tour">
+        <span id="autotour-dot" class="w-2 h-2 rounded-full bg-slate-500"></span>
+        <span class="hidden sm:inline">Auto-Flight</span>
+      </button>
+
+      <!-- Sound FX Toggle -->
+      <button id="btn-audio" type="button" class="p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg bg-slate-900/80 border border-slate-700/70 text-xs font-mono-code text-cyan-300 hover:border-cyan-400/50 transition flex items-center gap-1" title="Toggle Web Audio Synth FX">
+        <span id="audio-icon">🔊</span>
+        <span id="audio-label" class="hidden lg:inline">SFX ON</span>
+      </button>
+
+      <!-- GitHub.io Deploy Guide Trigger -->
+      <button id="btn-deploy-modal" type="button" class="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 font-semibold text-xs hover:brightness-110 transition shadow-lg shadow-cyan-500/20 flex items-center gap-1">
+        <span>⚡</span>
+        <span class="hidden sm:inline">Host on github.io</span>
+        <span class="sm:hidden">Deploy</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Left/Top Floating 3D Telemetry Pill (Visible in 3D & Split Modes) -->
+  <div id="telemetry-pill" class="fixed top-16 left-3 sm:left-6 z-20 pointer-events-auto flex flex-col gap-2 max-w-[270px] sm:max-w-xs">
+    <div class="cyber-glass rounded-xl p-3 border border-cyan-500/25 shadow-xl">
+      <div class="flex items-center justify-between text-[11px] font-mono-code text-cyan-400 mb-1">
+        <span id="active-sector-code">SECTOR 00 // NEXUS CORE</span>
+        <span id="fps-counter" class="text-emerald-400">60 FPS</span>
+      </div>
+      <div class="text-xs sm:text-sm font-display font-bold text-white leading-snug" id="active-sector-title">
+        3D Interactive Engineering Multiverse
+      </div>
+      <p class="text-[11px] text-slate-300 mt-1 leading-relaxed" id="active-sector-hint">
+        Drag to orbit • Scroll/Pinch to zoom • Click any glowing 3D node or dock tab below to warp camera.
+      </p>
+      <div class="mt-2.5 flex items-center gap-1.5">
+        <button id="btn-prev-zone" type="button" class="flex-1 py-1 px-2 rounded bg-slate-800/90 hover:bg-slate-700 text-[11px] font-mono-code text-slate-200 border border-slate-600/50 transition">
+          ← Prev Node
+        </button>
+        <button id="btn-reset-cam" type="button" class="py-1 px-2 rounded bg-slate-800/90 hover:bg-slate-700 text-[11px] font-mono-code text-cyan-300 border border-cyan-500/30 transition" title="Reset Camera Orbit">
+          Reset
+        </button>
+        <button id="btn-next-zone" type="button" class="flex-1 py-1 px-2 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-[11px] font-mono-code text-cyan-200 border border-cyan-400/40 transition">
+          Next Node →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Interactive HUD Content Drawer (Right Side on Desktop, Bottom Sheet on Mobile) -->
+  <main id="hud-drawer" class="fixed z-20 transition-all duration-300 ease-out
+    bottom-14 left-2 right-2 top-[42%]
+    md:top-16 md:bottom-16 md:right-5 md:left-auto md:w-[540px] lg:w-[620px] xl:w-[680px]
+    cyber-glass rounded-2xl flex flex-col overflow-hidden">
+
+    <!-- Drawer Top Handle & Mobile Collapse Bar -->
+    <div class="flex items-center justify-between px-4 py-2.5 border-b border-slate-800/80 bg-slate-950/60 shrink-0">
+      <div class="flex items-center gap-2">
+        <span id="drawer-badge-dot" class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+        <span id="drawer-header-label" class="font-mono-code text-xs uppercase tracking-wider text-cyan-300 font-semibold">
+          STATION 01 // EXECUTIVE NEXUS
+        </span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <button id="btn-mobile-sheet-size" type="button" class="md:hidden px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-[11px] font-mono-code text-cyan-300">
+          ↕ Expand/Half
+        </button>
+        <button id="btn-minimize-hud" type="button" class="px-2 py-0.5 rounded bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-[11px] font-mono-code text-slate-300 transition" title="Hide HUD to explore 3D scene full screen">
+          Hide Panel ✕
+        </button>
+      </div>
+    </div>
+
+    <!-- Scrollable Station Content Area -->
+    <div id="hud-content-scroll" class="flex-1 overflow-y-auto hud-scroll p-4 sm:p-6 space-y-6 select-text">
+
+      <!-- ==========================================
+           ZONE 0: NEXUS CORE (EXECUTIVE OVERVIEW)
+           ========================================== -->
+      <section id="zone-panel-0" class="zone-panel space-y-5">
+        <div class="relative rounded-xl overflow-hidden border border-cyan-500/30">
+          <img src="assets/command-deck.jpg" alt="3D Command Deck" class="w-full h-40 sm:h-48 object-cover opacity-85 max-w-full" />
+          <div class="absolute inset-0 bg-gradient-to-t from-[#050811] via-[#050811]/55 to-transparent"></div>
+          <div class="absolute bottom-3 left-4 right-4 flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-mono-code uppercase tracking-widest bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 mb-1">
+                Kochi &amp; Bengaluru, India • 12+ Years Experience
+              </span>
+              <h2 class="font-display text-xl sm:text-2xl font-bold text-white">
+                Vijith V.S <span class="text-cyan-400 font-normal text-sm sm:text-base">// Senior Software Engineer</span>
+              </h2>
+            </div>
+            <div class="flex gap-2">
+              <a href="https://www.linkedin.com/in/vijithvs/" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-lg bg-cyan-500 text-slate-950 font-semibold text-xs hover:bg-cyan-400 transition">
+                LinkedIn ↗
+              </a>
+              <a href="https://github.com/vijithvenganoor" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-lg bg-slate-800/90 text-white border border-slate-600 text-xs hover:border-cyan-400 transition">
+                GitHub ↗
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Executive Bio -->
+        <div class="cyber-card rounded-xl p-4">
+          <p class="text-xs sm:text-sm text-slate-200 leading-relaxed">
+             Full-stack enterprise architect and product builder blending <strong class="text-cyan-300">12+ years of high-volume .NET, Web API, and Cloud Order Management System (OMS) engineering</strong> at <strong class="text-emerald-300">Intelliflo RedBlack</strong> with independent <strong class="text-purple-300">Unity mobile game publishing (VJ Group on Google Play)</strong>, <strong class="text-amber-300">Cloudflare/Supabase/n8n automation</strong>, and disciplined <strong class="text-emerald-300">quantitative equity swing trading</strong>.
+          </p>
+        </div>
+
+        <!-- Live Impact KPI Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div class="cyber-card rounded-xl p-3 text-center">
+            <div class="font-display text-lg sm:text-xl font-bold text-cyan-400">12+ Yrs</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">Enterprise .NET &amp; Cloud</div>
+          </div>
+          <div class="cyber-card rounded-xl p-3 text-center">
+            <div class="font-display text-lg sm:text-xl font-bold text-emerald-400">300M+</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">Toll &amp; OMS Txns Scaled</div>
+          </div>
+          <div class="cyber-card rounded-xl p-3 text-center">
+            <div class="font-display text-lg sm:text-xl font-bold text-purple-400">5 Apps</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">VJ Group Google Play</div>
+          </div>
+          <div class="cyber-card rounded-xl p-3 text-center">
+            <div class="font-display text-lg sm:text-xl font-bold text-amber-400">1:3 R:R</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">VCP Swing Gatekeeper</div>
+          </div>
+        </div>
+
+        <!-- Interactive 3D Universe Sector Cards (Quick Warp) -->
+        <div>
+          <div class="flex items-center justify-between mb-2.5">
+            <h3 class="font-display text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-300">
+              Explore 3D Sectors &amp; Live Simulations
+            </h3>
+            <span class="text-[11px] font-mono-code text-cyan-400">Click to Fly Camera</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <button type="button" data-warp-zone="1" class="warp-btn text-left cyber-card rounded-xl p-3.5 group">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-mono-code text-emerald-400 font-semibold">01 // FINTECH OMS</span>
+                <span class="text-xs text-slate-400 group-hover:translate-x-1 transition">Warp →</span>
+              </div>
+              <div class="font-display font-bold text-sm text-white mt-1">Intelliflo RedBlack &amp; Rebalancer</div>
+              <p class="text-xs text-slate-400 mt-1">Fixed Income Blocks, YAML Export API, Addepar UX + Live Rebalancing Simulator.</p>
+            </button>
+
+            <button type="button" data-warp-zone="2" class="warp-btn text-left cyber-card rounded-xl p-3.5 group">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-mono-code text-cyan-400 font-semibold">02 // CAREER HELIX</span>
+                <span class="text-xs text-slate-400 group-hover:translate-x-1 transition">Warp →</span>
+              </div>
+              <div class="font-display font-bold text-sm text-white mt-1">12+ Year Engineering Journey</div>
+              <p class="text-xs text-slate-400 mt-1">RedBlack, RapidValue (HTA 2.0 3.7M vehicles), PenThu Clinical Trials, CUSAT B.Tech.</p>
+            </button>
+
+            <button type="button" data-warp-zone="3" class="warp-btn text-left cyber-card rounded-xl p-3.5 group">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-mono-code text-purple-400 font-semibold">03 // VJ GROUP STUDIO</span>
+                <span class="text-xs text-slate-400 group-hover:translate-x-1 transition">Warp →</span>
+              </div>
+              <div class="font-display font-bold text-sm text-white mt-1">Google Play &amp; Unity Game Lab</div>
+              <p class="text-xs text-slate-400 mt-1">5 verified Android apps &amp; Playable "Hidden Word Puzzle" live mini-game.</p>
+            </button>
+
+            <button type="button" data-warp-zone="4" class="warp-btn text-left cyber-card rounded-xl p-3.5 group">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-mono-code text-amber-400 font-semibold">04 // QUANT &amp; CLOUD LAB</span>
+                <span class="text-xs text-slate-400 group-hover:translate-x-1 transition">Warp →</span>
+              </div>
+              <div class="font-display font-bold text-sm text-white mt-1">Swing Trading &amp; Edge Automation</div>
+              <p class="text-xs text-slate-400 mt-1">VCP Risk Calculator, TaxHarvest (Supabase), PickMyAC (Cloudflare), n8n &amp; AI tools.</p>
+            </button>
+          </div>
+        </div>
+
+        <!-- Core Tech Stack Radar Pills -->
+        <div class="cyber-card rounded-xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="font-display text-xs font-bold uppercase tracking-wider text-cyan-300">Full-Spectrum Arsenal</h3>
+            <div class="flex gap-1 text-[11px] font-mono-code">
+              <button type="button" data-skill-filter="all" class="skill-filter-btn px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">All</button>
+              <button type="button" data-skill-filter="backend" class="skill-filter-btn px-2 py-0.5 rounded bg-slate-800 text-slate-400">Backend/.NET</button>
+              <button type="button" data-skill-filter="frontend" class="skill-filter-btn px-2 py-0.5 rounded bg-slate-800 text-slate-400">Web/Mobile</button>
+              <button type="button" data-skill-filter="cloud" class="skill-filter-btn px-2 py-0.5 rounded bg-slate-800 text-slate-400">Cloud/AI</button>
+            </div>
+          </div>
+          <div id="skills-tag-cloud" class="flex flex-wrap gap-1.5"></div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           ZONE 1: FINTECH & OMS ARCHITECTURE (REDBLACK)
+           ========================================== -->
+      <section id="zone-panel-1" class="zone-panel hidden space-y-5">
+        <div class="relative rounded-xl overflow-hidden border border-emerald-500/30">
+          <img src="assets/fintech-oms.jpg" alt="FinTech Rebalancing Engine" class="w-full h-40 object-cover opacity-85 max-w-full" />
+          <div class="absolute inset-0 bg-gradient-to-t from-[#050811] via-[#050811]/50 to-transparent"></div>
+          <div class="absolute bottom-3 left-4 right-4">
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono-code uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
+              Intelliflo RedBlack • OMS Team 1
+            </span>
+            <h2 class="font-display text-lg sm:text-xl font-bold text-white mt-1">
+              Institutional Portfolio Rebalancing &amp; Cloud OMS
+            </h2>
+          </div>
+        </div>
+
+        <!-- Deep Engineering Epics Delivered -->
+        <div class="space-y-2.5">
+          <h3 class="font-display text-xs font-bold uppercase tracking-wider text-emerald-300">
+            Key Cloud OMS Epics &amp; Architectural Ownership
+          </h3>
+          <div class="grid grid-cols-1 gap-2.5">
+            <div class="cyber-card rounded-xl p-3.5 border-l-2 border-l-emerald-400">
+              <div class="flex items-center justify-between">
+                <span class="font-display font-bold text-sm text-white">Fixed Income Blocks &amp; Merge Block Parity</span>
+                <span class="text-[10px] font-mono-code px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300">C# • Open API</span>
+              </div>
+              <p class="text-xs text-slate-300 mt-1 leading-relaxed">
+                Expanded limited desktop fixed-income block workflows to full cloud parity matching equity block capabilities. Standardized legacy endpoints to Open API specifications and resolved critical <strong class="text-white">Missing Order Validation</strong> origin checks to prevent unintended institutional trades.
+              </p>
+            </div>
+
+            <div class="cyber-card rounded-xl p-3.5 border-l-2 border-l-cyan-400">
+              <div class="flex items-center justify-between">
+                <span class="font-display font-bold text-sm text-white">YAML Export Transition API &amp; Fill Edit Engine</span>
+                <span class="text-[10px] font-mono-code px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300">YAML • Aurelia • SQL</span>
+              </div>
+              <p class="text-xs text-slate-300 mt-1 leading-relaxed">
+                Took end-to-end ownership of YAML schema implementation in the Export Transition API, engineered <strong class="text-white">Fill Edit, Import Fill, and Mutual Fund Fill</strong> workflows with minimal code review friction, and optimized high-volume <strong class="text-white">Trade Blotter validation</strong> performance.
+              </p>
+            </div>
+
+            <div class="cyber-card rounded-xl p-3.5 border-l-2 border-l-purple-400">
+              <div class="flex items-center justify-between">
+                <span class="font-display font-bold text-sm text-white">Fractional Shares POCs, Addepar UX &amp; AI Mentorship</span>
+                <span class="text-[10px] font-mono-code px-2 py-0.5 rounded bg-purple-500/15 text-purple-300">Aurelia • Copilot • Rate Limiting</span>
+              </div>
+              <p class="text-xs text-slate-300 mt-1 leading-relaxed">
+                Built custom searchable dropdown controls for <strong class="text-white">Addepar account mapping</strong>, redesigned the Allocation Tab &amp; Export Wizard, led a company-wide engineering session on <strong class="text-white">API Rate Limiting</strong>, represented at <strong class="text-white">GIDS 2025</strong>, and championed GitHub Copilot adoption across OMS Team 1.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- LIVE INTERACTIVE DEMO: Multi-Custodian Portfolio Rebalancing & Tax-Loss Harvesting Simulator -->
+        <div class="cyber-card rounded-xl p-4 border border-emerald-500/30 bg-emerald-950/15 space-y-3.5">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-[10px] font-mono-code uppercase tracking-wider text-emerald-400">Interactive Architecture Sandbox</span>
+              <h4 class="font-display font-bold text-sm sm:text-base text-white">RIA Portfolio Drift &amp; Tax-Loss Harvesting Simulator</h4>
+            </div>
+            <button id="btn-run-rebalance" type="button" class="px-3 py-1.5 rounded-lg bg-emerald-500 text-slate-950 font-semibold text-xs hover:bg-emerald-400 transition shadow">
+              ⚡ Execute Rebalance
+            </button>
+          </div>
+          <p class="text-xs text-slate-300">
+            Adjust portfolio AUM and drift tolerance below to simulate how a multi-custodian OMS generates block orders and harvests tax losses:
+          </p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+              <div class="flex justify-between mb-1">
+                <span class="text-slate-400">Portfolio AUM ($M):</span>
+                <span id="rebal-aum-val" class="font-mono-code text-emerald-300 font-bold">$25.0M</span>
+              </div>
+              <input id="rebal-aum-slider" type="range" min="5" max="150" step="5" value="25" class="w-full accent-emerald-400 cursor-pointer" />
+            </div>
+            <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+              <div class="flex justify-between mb-1">
+                <span class="text-slate-400">Drift Band Tolerance:</span>
+                <span id="rebal-band-val" class="font-mono-code text-cyan-300 font-bold">±2.5%</span>
+              </div>
+              <input id="rebal-band-slider" type="range" min="1" max="5" step="0.5" value="2.5" class="w-full accent-cyan-400 cursor-pointer" />
+            </div>
+          </div>
+          <!-- Allocation Bars & Generated Orders -->
+          <div id="rebal-output" class="space-y-2 text-xs font-mono-code bg-slate-950/80 p-3 rounded-lg border border-slate-800"></div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           ZONE 2: 12+ YEAR CAREER CONSTELLATION
+           ========================================== -->
+      <section id="zone-panel-2" class="zone-panel hidden space-y-5">
+        <div class="cyber-card rounded-xl p-4 border-l-4 border-l-cyan-400">
+          <span class="text-[10px] font-mono-code uppercase tracking-wider text-cyan-400">Chronological Engineering Trajectory</span>
+          <h2 class="font-display text-lg sm:text-xl font-bold text-white mt-0.5">
+            12+ Years Building High-Reliability Enterprise Systems
+          </h2>
+          <p class="text-xs text-slate-300 mt-1">
+            From B.Tech Computer Science at CUSAT (2007–2011) and CDAC .NET certification to leading mission-critical FinTech OMS, US Highway Toll processing (300M+ transactions), and healthcare clinical trial systems.
+          </p>
+        </div>
+
+        <!-- Timeline Cards -->
+        <div class="space-y-3 relative before:absolute before:top-3 before:bottom-3 before:left-3 before:w-0.5 before:bg-gradient-to-b before:from-cyan-400 before:via-emerald-400 before:to-purple-500">
+          <!-- Role 1 -->
+          <div class="pl-8 relative">
+            <span class="absolute left-1.5 top-3.5 w-3.5 h-3.5 rounded-full bg-emerald-400 ring-4 ring-[#050811]"></span>
+            <div class="cyber-card rounded-xl p-3.5">
+              <div class="flex flex-wrap items-center justify-between gap-1">
+                <h3 class="font-display font-bold text-sm sm:text-base text-white">Senior Software Engineer — Intelliflo RedBlack</h3>
+                <span class="text-[11px] font-mono-code text-emerald-300 bg-emerald-500/15 px-2 py-0.5 rounded">Present • Kochi / Bengaluru</span>
+              </div>
+              <p class="text-xs text-slate-300 mt-1.5 leading-relaxed">
+                Core member of Cloud OMS Team 1 building scalable institutional portfolio rebalancing and order management software using <strong class="text-white">C#, .NET Core, Web API, LINQ, Aurelia, TypeScript, YAML, and SQL Server</strong>. Recognized go-to specialist for web architecture, AI-assisted engineering (GitHub Copilot), and Trade Blotter optimization.
+              </p>
+            </div>
+          </div>
+
+          <!-- Role 2 -->
+          <div class="pl-8 relative">
+            <span class="absolute left-1.5 top-3.5 w-3.5 h-3.5 rounded-full bg-cyan-400 ring-4 ring-[#050811]"></span>
+            <div class="cyber-card rounded-xl p-3.5">
+              <div class="flex flex-wrap items-center justify-between gap-1">
+                <h3 class="font-display font-bold text-sm sm:text-base text-white">Senior Software Engineer — RapidValue Solutions</h3>
+                <span class="text-[11px] font-mono-code text-cyan-300 bg-cyan-500/15 px-2 py-0.5 rounded">Carnival Infopark, Kochi</span>
+              </div>
+              <ul class="text-xs text-slate-300 mt-1.5 space-y-1.5 list-disc list-inside">
+                <li><strong class="text-white">HTA 2.0 (Highway Toll Administration):</strong> Engineered C#, Web API, LINQ, ForgeRock, AngularJS, BizTalk, and SQL Server stored procedures for the largest US rental car tolling provider (<strong class="text-cyan-300">300M+ electronic toll transactions across 3.7M+ vehicles</strong> via transponder &amp; license-plate video tolling).</li>
+                <li><strong class="text-white">Europital PenThu:</strong> Built clinical trials medical monitoring &amp; Knowledge Base Question-Thread deliberation platform with multi-trial oversight and SMS/Email/Dashboard notifications.</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Role 3 -->
+          <div class="pl-8 relative">
+            <span class="absolute left-1.5 top-3.5 w-3.5 h-3.5 rounded-full bg-purple-400 ring-4 ring-[#050811]"></span>
+            <div class="cyber-card rounded-xl p-3.5">
+              <div class="flex flex-wrap items-center justify-between gap-1">
+                <h3 class="font-display font-bold text-sm sm:text-base text-white">Full-Stack .NET &amp; Java Engineer — Early Career Foundation</h3>
+                <span class="text-[11px] font-mono-code text-purple-300 bg-purple-500/15 px-2 py-0.5 rounded">2012 – 2015 • Trivandrum &amp; Kochi</span>
+              </div>
+              <p class="text-xs text-slate-300 mt-1.5 leading-relaxed">
+                Delivered end-to-end enterprise software across <strong class="text-white">US Software Group, Miraglo Software Technologies, Add Software Solution, and Technology Solutions &amp; Innovations</strong>:
+              </p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 text-[11px]">
+                <div class="bg-slate-900/70 p-2 rounded border border-slate-800">
+                  <strong class="text-cyan-300">Metro Scans Cloud Store:</strong> Multi-branch clinical inventory &amp; test-revenue tracking (ASP.NET MVC, MySQL).
+                </div>
+                <div class="bg-slate-900/70 p-2 rounded border border-slate-800">
+                  <strong class="text-emerald-300">I-Trade ERP &amp; Dividend System:</strong> Client pay-in/pay-out daybook, vouchers &amp; financial ledgers (C#, SQL Server).
+                </div>
+                <div class="bg-slate-900/70 p-2 rounded border border-slate-800">
+                  <strong class="text-purple-300">Sabarimala Inventory Suite:</strong> Multi-warehouse stock transfers, purchase/work orders &amp; reporting.
+                </div>
+                <div class="bg-slate-900/70 p-2 rounded border border-slate-800">
+                  <strong class="text-amber-300">Mobile Money &amp; Cab-Assist:</strong> 15-digit secret code P2P credit transfer (Java/Spring/Hibernate) &amp; cloud cab dispatch.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Education & Honors -->
+          <div class="pl-8 relative">
+            <span class="absolute left-1.5 top-3.5 w-3.5 h-3.5 rounded-full bg-amber-400 ring-4 ring-[#050811]"></span>
+            <div class="cyber-card rounded-xl p-3.5">
+              <div class="flex flex-wrap items-center justify-between gap-1">
+                <h3 class="font-display font-bold text-sm sm:text-base text-white">B.Tech in Computer Science &amp; Engineering (CUSAT)</h3>
+                <span class="text-[11px] font-mono-code text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded">2007 – 2011 • Trivandrum</span>
+              </div>
+              <p class="text-xs text-slate-300 mt-1">
+                MG College of Engineering, Thiruvallom under <strong class="text-white">Cochin University of Science and Technology (CUSAT)</strong> • Certified in .NET Technologies from <strong class="text-white">STDC, CDAC Trivandrum</strong> • Multiple client awards for reusable component architecture &amp; <em>Mavericks Fun &amp; Innovation</em> prize winner.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           ZONE 3: VJ GROUP MOBILE & GAME STUDIO
+           ========================================== -->
+      <section id="zone-panel-3" class="zone-panel hidden space-y-5">
+        <div class="relative rounded-xl overflow-hidden border border-purple-500/30">
+          <img src="assets/vjgroup-games.jpg" alt="VJ Group Mobile Game Studio" class="w-full h-40 object-cover opacity-85 max-w-full" />
+          <div class="absolute inset-0 bg-gradient-to-t from-[#050811] via-[#050811]/50 to-transparent"></div>
+          <div class="absolute bottom-3 left-4 right-4">
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono-code uppercase bg-purple-500/20 text-purple-300 border border-purple-400/40">
+              VJ Group • Google Play Console Publisher
+            </span>
+            <h2 class="font-display text-lg sm:text-xl font-bold text-white mt-1">
+              Indie Mobile Game Studio &amp; Interactive Playable Demo
+            </h2>
+          </div>
+        </div>
+
+        <div class="cyber-card rounded-xl p-3.5 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-display font-bold text-sm text-white">VJ Group Android Ecosystem (5 Verified Google Play Apps)</span>
+            <span class="text-[10px] font-mono-code px-2 py-0.5 rounded bg-purple-500/20 text-purple-300">Unity • C# • Play Games v2</span>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Published and managed 5 mobile applications and games under the verified <strong class="text-purple-300">VJ Group</strong> developer umbrella on Google Play Console—implementing Unity 2D/3D gameplay loops, Google Play Billing in-app coin economies, Play Games Services (PGS v2) progression stats, and Android App Signing compliance.
+          </p>
+        </div>
+
+        <!-- PLAYABLE MINI-GAME: HIDDEN WORD PUZZLE (VJ GROUP EDITION) -->
+        <div class="cyber-card rounded-xl p-4 border border-purple-500/40 bg-purple-950/15 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <span class="text-[10px] font-mono-code uppercase tracking-wider text-purple-300">Playable Live Inside Portfolio • com.vijithvs.hiddenwordpuzzle</span>
+              <h3 class="font-display font-bold text-sm sm:text-base text-white">🎮 Hidden Word Puzzle: Tech &amp; FinTech Edition</h3>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="word-score-badge" class="px-2.5 py-1 rounded-lg bg-purple-500/20 border border-purple-400/40 font-mono-code text-xs text-purple-200 font-bold">
+                Found: 0 / 5 • 🪙 240 Coins
+              </span>
+              <button id="btn-reset-wordgame" type="button" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-mono-code text-slate-200 border border-slate-600 transition">
+                New Grid ↻
+              </button>
+            </div>
+          </div>
+
+          <p class="text-xs text-slate-300">
+            Tap letters in sequence to spell the hidden engineering &amp; market words below, then hit <strong class="text-purple-300">Submit Word</strong> (or use a Coin Hint!):
+          </p>
+
+          <!-- Target Words List -->
+          <div id="word-targets-list" class="flex flex-wrap gap-1.5"></div>
+
+          <!-- Current Selection Bar -->
+          <div class="flex items-center justify-between gap-2 bg-slate-950/90 px-3 py-2 rounded-lg border border-slate-800">
+            <div class="font-mono-code text-sm font-bold tracking-widest text-cyan-300 min-h-[20px]" id="current-word-display">
+              SELECT LETTERS...
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button id="btn-word-clear" type="button" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] font-mono-code text-slate-300">
+                Clear
+              </button>
+              <button id="btn-word-hint" type="button" class="px-2 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-[11px] font-mono-code text-amber-300">
+                💡 Hint (-30🪙)
+              </button>
+              <button id="btn-word-submit" type="button" class="px-3 py-1 rounded bg-purple-500 hover:bg-purple-400 text-slate-950 font-bold text-[11px] font-mono-code">
+                Submit ✓
+              </button>
+            </div>
+          </div>
+
+          <!-- Interactive 6x6 Letter Grid -->
+          <div id="word-grid-board" class="grid grid-cols-6 gap-1.5 max-w-xs mx-auto pt-1"></div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           ZONE 4: QUANT SWING TRADING & CLOUD AUTOMATION LAB
+           ========================================== -->
+      <section id="zone-panel-4" class="zone-panel hidden space-y-5">
+        <div class="relative rounded-xl overflow-hidden border border-amber-500/30">
+          <img src="assets/quant-cloud-lab.jpg" alt="Automation and Quant Lab" class="w-full h-40 object-cover opacity-85 max-w-full" />
+          <div class="absolute inset-0 bg-gradient-to-t from-[#050811] via-[#050811]/50 to-transparent"></div>
+          <div class="absolute bottom-3 left-4 right-4">
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono-code uppercase bg-amber-500/20 text-amber-300 border border-amber-400/40">
+              VCP Breakout Discipline • n8n • Cloudflare • Supabase
+            </span>
+            <h2 class="font-display text-lg sm:text-xl font-bold text-white mt-1">
+              Quant Swing Trading Engine &amp; Edge Automation Lab
+            </h2>
+          </div>
+        </div>
+
+        <!-- Cloud & Automation Ventures -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <div class="cyber-card rounded-xl p-3">
+            <div class="text-[10px] font-mono-code text-emerald-400 uppercase">Supabase Cloud DB</div>
+            <div class="font-display font-bold text-sm text-white mt-0.5">TaxHarvest Platform</div>
+            <p class="text-[11px] text-slate-400 mt-1">Cloud-backed equity tax-loss harvesting &amp; portfolio analytics staging architecture.</p>
+          </div>
+          <div class="cyber-card rounded-xl p-3">
+            <div class="text-[10px] font-mono-code text-amber-400 uppercase">Cloudflare Edge</div>
+            <div class="font-display font-bold text-sm text-white mt-0.5">PickMyAC.com</div>
+            <p class="text-[11px] text-slate-400 mt-1">Consumer appliance decision web engine with Cloudflare DNS, SSL &amp; edge caching.</p>
+          </div>
+          <div class="cyber-card rounded-xl p-3">
+            <div class="text-[10px] font-mono-code text-cyan-400 uppercase">AI &amp; Orchestration</div>
+            <div class="font-display font-bold text-sm text-white mt-0.5">n8n + DeepSeek API</div>
+            <p class="text-[11px] text-slate-400 mt-1">Automated market alerts, election/local data pipelines, and LLM-assisted dev workflows.</p>
+          </div>
+        </div>
+
+        <!-- LIVE INTERACTIVE DEMO: Pro Swing Trading Gatekeeper & VCP Risk Calculator -->
+        <div class="cyber-card rounded-xl p-4 border border-amber-500/40 bg-amber-950/15 space-y-3.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <span class="text-[10px] font-mono-code uppercase tracking-wider text-amber-400">Vijith's Systematic Capital Preservation Model</span>
+              <h3 class="font-display font-bold text-sm sm:text-base text-white">📈 VCP Breakout &amp; Market Regime Gatekeeper</h3>
+            </div>
+            <span id="regime-badge" class="px-2.5 py-1 rounded-full text-[11px] font-mono-code font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
+              REGIME: BULL EXPANSION ✓
+            </span>
+          </div>
+
+          <!-- Market Regime Gatekeeper Selector -->
+          <div class="space-y-1.5">
+            <label class="text-[11px] font-mono-code text-slate-300">1. Macro Market Regime Gatekeeper (Nifty 50 / Midcap Breadth):</label>
+            <div class="grid grid-cols-3 gap-2 text-xs">
+              <button type="button" data-regime="bull" class="regime-btn py-1.5 px-2 rounded-lg bg-emerald-500/25 border border-emerald-400 text-emerald-200 font-semibold">
+                🟢 Bull Breakout
+              </button>
+              <button type="button" data-regime="choppy" class="regime-btn py-1.5 px-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-300">
+                🟡 Choppy / Volatile
+              </button>
+              <button type="button" data-regime="bear" class="regime-btn py-1.5 px-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-300">
+                🔴 Distribution (Cash)
+              </button>
+            </div>
+          </div>
+
+          <!-- Trade Parameters -->
+          <div class="grid grid-cols-3 gap-2.5 text-xs">
+            <div class="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800">
+              <label for="input-capital" class="text-[10px] text-slate-400 block">Swing Capital (₹)</label>
+              <input id="input-capital" type="number" value="500000" step="25000" class="w-full bg-transparent font-mono-code font-bold text-white text-sm focus:outline-none mt-0.5" />
+            </div>
+            <div class="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800">
+              <label for="input-entry" class="text-[10px] text-slate-400 block">VCP Pivot Entry (₹)</label>
+              <input id="input-entry" type="number" value="250" step="5" class="w-full bg-transparent font-mono-code font-bold text-cyan-300 text-sm focus:outline-none mt-0.5" />
+            </div>
+            <div class="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800">
+              <label for="input-stop-pct" class="text-[10px] text-slate-400 block">Stop-Loss % (Max 5%)</label>
+              <input id="input-stop-pct" type="number" value="4.0" min="1.5" max="8.0" step="0.5" class="w-full bg-transparent font-mono-code font-bold text-amber-300 text-sm focus:outline-none mt-0.5" />
+            </div>
+          </div>
+
+          <!-- Gatekeeper Verdict Output -->
+          <div id="quant-calc-output" class="bg-slate-950/90 rounded-lg p-3 border border-slate-800 font-mono-code text-xs space-y-1.5"></div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           ZONE 5: GITHUB.IO DEPLOY & DIRECT COMM-LINK
+           ========================================== -->
+      <section id="zone-panel-5" class="zone-panel hidden space-y-5">
+        <div class="cyber-card rounded-xl p-4 border-l-4 border-l-emerald-400">
+          <span class="text-[10px] font-mono-code uppercase tracking-wider text-emerald-400">Direct Comm-Link &amp; GitHub Pages Blueprint</span>
+          <h2 class="font-display text-lg sm:text-xl font-bold text-white mt-0.5">
+            Connect with Vijith V.S &amp; Launch on <code class="text-cyan-300">github.io</code>
+          </h2>
+          <p class="text-xs text-slate-300 mt-1">
+            Available for architectural discussions, Lead/Principal .NET &amp; FinTech engineering collaborations, indie game partnerships, and technical advisory across Kochi &amp; Bengaluru.
+          </p>
+        </div>
+
+        <!-- Verified Contact Channels -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+          <a href="https://www.linkedin.com/in/vijithvs/" target="_blank" rel="noopener noreferrer" class="cyber-card rounded-xl p-3.5 flex items-center justify-between group">
+            <div>
+              <div class="text-[10px] font-mono-code text-cyan-400">LINKEDIN PROFILE</div>
+              <div class="font-display font-bold text-sm text-white mt-0.5">linkedin.com/in/vijithvs</div>
+            </div>
+            <span class="text-cyan-400 group-hover:translate-x-1 transition">↗</span>
+          </a>
+
+          <a href="https://github.com/vijithvenganoor" target="_blank" rel="noopener noreferrer" class="cyber-card rounded-xl p-3.5 flex items-center justify-between group">
+            <div>
+              <div class="text-[10px] font-mono-code text-purple-400">GITHUB REPOSITORIES</div>
+              <div class="font-display font-bold text-sm text-white mt-0.5">github.com/vijithvenganoor</div>
+            </div>
+            <span class="text-purple-400 group-hover:translate-x-1 transition">↗</span>
+          </a>
+
+          <a href="mailto:vijithvenganoor@gmail.com" class="cyber-card rounded-xl p-3.5 flex items-center justify-between group">
+            <div>
+              <div class="text-[10px] font-mono-code text-emerald-400">DIRECT EMAIL</div>
+              <div class="font-display font-bold text-sm text-white mt-0.5">vijithvenganoor@gmail.com</div>
+            </div>
+            <span class="text-emerald-400 group-hover:translate-x-1 transition">✉</span>
+          </a>
+
+          <a href="tel:+919496370553" class="cyber-card rounded-xl p-3.5 flex items-center justify-between group">
+            <div>
+              <div class="text-[10px] font-mono-code text-amber-400">PHONE / WHATSAPP</div>
+              <div class="font-display font-bold text-sm text-white mt-0.5">+91 94963 70553</div>
+            </div>
+            <span class="text-amber-400 group-hover:translate-x-1 transition">☎</span>
+          </a>
+        </div>
+
+        <!-- Beyond Code Personal Touch -->
+        <div class="cyber-card rounded-xl p-3.5 text-xs text-slate-300 space-y-1.5">
+          <div class="font-display font-bold text-white text-sm">🌏 Beyond the Terminal</div>
+          <p>
+            • <strong class="text-cyan-300">Google Local Guide (2,667+ Points):</strong> Actively mapping and reviewing transit, dining, and local businesses across Kochi, Trivandrum, and Bengaluru.<br/>
+            • <strong class="text-emerald-300">DSLR Photography &amp; Sports:</strong> Canon EOS 1300D dual-lens enthusiast, former school basketball team captain &amp; college volleyball competitor.<br/>
+            • <strong class="text-amber-300">Languages:</strong> Fluent in English, Malayalam, and Hindi.
+          </p>
+        </div>
+
+        <!-- Interactive Instant Message / Mailto Generator -->
+        <form id="contact-form" class="cyber-card rounded-xl p-4 space-y-3">
+          <div class="font-display font-bold text-sm text-white">Send a Direct Transmission</div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+            <input id="msg-name" type="text" required placeholder="Your Name / Organization" class="px-3 py-2 rounded-lg bg-slate-900/90 border border-slate-700 text-white focus:border-cyan-400 focus:outline-none" />
+            <input id="msg-topic" type="text" required placeholder="Topic (e.g., FinTech Architecture, App Collab)" class="px-3 py-2 rounded-lg bg-slate-900/90 border border-slate-700 text-white focus:border-cyan-400 focus:outline-none" />
+          </div>
+          <textarea id="msg-body" rows="2" required placeholder="Write your message for Vijith..." class="w-full px-3 py-2 rounded-lg bg-slate-900/90 border border-slate-700 text-xs text-white focus:border-cyan-400 focus:outline-none"></textarea>
+          <div class="flex items-center justify-between gap-2">
+            <button type="submit" class="px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 font-bold text-xs hover:brightness-110 transition">
+              🚀 Compose Email Transmission
+            </button>
+            <button id="btn-copy-email" type="button" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs font-mono-code text-slate-200 transition">
+              📋 Copy Email Address
+            </button>
+          </div>
+        </form>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Floating Restore HUD Button (When HUD is Minimized in Pure 3D Mode) -->
+  <button id="btn-restore-hud" type="button" class="fixed bottom-16 right-4 z-30 hidden px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 font-display font-bold text-xs shadow-2xl hover:scale-105 transition">
+    ✦ Open Interactive HUD Panel
+  </button>
+
+  <!-- Bottom 3D Station Navigation Dock (Mobile & Desktop) -->
+  <nav aria-label="3D Sector Navigation" class="fixed bottom-0 left-0 right-0 z-30 cyber-glass border-b-0 border-x-0 px-2 py-1.5 sm:px-6 sm:py-2">
+    <div class="max-w-5xl mx-auto flex items-center justify-between gap-1 overflow-x-auto no-scrollbar">
+      <button type="button" data-dock-zone="0" class="dock-btn flex-1 min-w-[64px] py-1.5 px-2 rounded-lg bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 font-mono-code text-[11px] font-semibold flex flex-col sm:flex-row items-center justify-center gap-1 transition">
+        <span>🌐</span>
+        <span>00 Core</span>
+      </button>
+      <button type="button" data-dock-zone="1" class="dock-btn flex-1 min-w-[64px] py-1.5 px-2 rounded-lg hover:bg-slate-800/80 border border-transparent text-slate-300 font-mono-code text-[11px] flex flex-col sm:flex-row items-center justify-center gap-1 transition">
+        <span>🏛️</span>
+        <span>01 FinTech</span>
+      </button>
+      <button type="button" data-dock-zone="2" class="dock-btn flex-1 min-w-[64px] py-1.5 px-2 rounded-lg hover:bg-slate-800/80 border border-transparent text-slate-300 font-mono-code text-[11px] flex flex-col sm:flex-row items-center justify-center gap-1 transition">
+        <span>🧬</span>
+        <span>02 Career</span>
+      </button>
+      <button type="button" data-dock-zone="3" class="dock-btn flex-1 min-w-[64px] py-1.5 px-2 rounded-lg hover:bg-slate-800/80 border border-transparent text-slate-300 font-mono-code text-[11px] flex flex-col sm:flex-row items-center justify-center gap-1 transition">
+        <span>🎮</span>
+        <span>03 Games</span>
+      </button>
+      <button type="button" data-dock-zone="4" class="dock-btn flex-1 min-w-[64px] py-1.5 px-2 rounded-lg hover:bg-slate-800/80 border border-transparent text-slate-300 font-mono-code text-[11px] flex flex-col sm:flex-row items-center justify-center gap-1 transition">
+        <span>📈</span>
+        <span>04 Quant/AI</span>
+      </button>
+      <button type="button" data-dock-zone="5" class="dock-btn flex-1 min-w-[64px] py-1.5 px-2 rounded-lg hover:bg-slate-800/80 border border-transparent text-slate-300 font-mono-code text-[11px] flex flex-col sm:flex-row items-center justify-center gap-1 transition">
+        <span>📡</span>
+        <span>05 Contact</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- GitHub Pages Deployment Blueprint Modal -->
+  <div id="deploy-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div class="cyber-glass rounded-2xl max-w-xl w-full p-5 sm:p-6 border border-cyan-400/40 space-y-4 max-h-[90vh] overflow-y-auto hud-scroll select-text">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <span class="text-[10px] font-mono-code uppercase text-cyan-400">Zero-Build Static Hosting Ready</span>
+          <h3 class="font-display text-lg font-bold text-white">Deploy to <code class="text-emerald-300">vijithvenganoor.github.io</code></h3>
+        </div>
+        <button id="btn-close-deploy" type="button" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono-code">
+          Close ✕
+        </button>
+      </div>
+      <p class="text-xs text-slate-300 leading-relaxed">
+        This entire 3D WebGL portfolio is engineered as a zero-dependency, self-contained HTML5 + Three.js bundle that deploys directly to <strong class="text-white">GitHub Pages</strong> or <strong class="text-white">Cloudflare Pages</strong> in under 60 seconds:
+      </p>
+      <div class="bg-slate-950 rounded-xl p-3.5 border border-slate-800 font-mono-code text-xs text-cyan-300 space-y-1 overflow-x-auto">
+        <div class="text-slate-500"># 1. Create a repo named vijithvenganoor.github.io (or portfolio)</div>
+        <div>git init</div>
+        <div>git add index.html README.md .nojekyll</div>
+        <div>git commit -m "Launch Vijith V.S 3D Interactive Nexus Portfolio"</div>
+        <div>git branch -M main</div>
+        <div>git remote add origin https://github.com/vijithvenganoor/portfolio.git</div>
+        <div>git push -u origin main</div>
+      </div>
+      <div class="flex items-center justify-between gap-2 pt-1">
+        <button id="btn-copy-git" type="button" class="px-3.5 py-2 rounded-lg bg-cyan-500 text-slate-950 font-bold text-xs hover:bg-cyan-400 transition">
+          📋 Copy Git Commands
+        </button>
+        <span class="text-[11px] text-slate-400">Enable in GitHub → Settings → Pages → Branch: <code class="text-slate-200">main</code></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast-box" class="fixed top-16 right-4 z-50 hidden px-4 py-2.5 rounded-xl cyber-glass border border-emerald-400/50 text-xs font-mono-code text-emerald-200 shadow-2xl"></div>
+
+  <script>
+    (function () {
+      // ==========================================
+      // 1. SYNTHESIZED WEB AUDIO SOUND ENGINE
+      // ==========================================
+      let audioCtx = null;
+      let soundEnabled = true;
+
+      function initAudio() {
+        if (!audioCtx && typeof window !== 'undefined') {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) {
+            try {
+              audioCtx = new AudioContextClass();
+            } catch (e) {
+              audioCtx = null;
+            }
+          }
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume().catch(function () {});
+        }
+      }
+
+      function playSynthTone(type) {
+        if (!soundEnabled) return;
+        initAudio();
+        if (!audioCtx) return;
+        try {
+          const now = audioCtx.currentTime;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          if (type === 'warp') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(190, now);
+            osc.frequency.exponentialRampToValueAtTime(580, now + 0.22);
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+            osc.start(now);
+            osc.stop(now + 0.26);
+          } else if (type === 'success') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(440, now);
+            osc.frequency.setValueAtTime(659.25, now + 0.08);
+            osc.frequency.setValueAtTime(880, now + 0.16);
+            gain.gain.setValueAtTime(0.09, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+            osc.start(now);
+            osc.stop(now + 0.34);
+          } else {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(520, now);
+            osc.frequency.exponentialRampToValueAtTime(780, now + 0.06);
+            gain.gain.setValueAtTime(0.05, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+            osc.start(now);
+            osc.stop(now + 0.08);
+          }
+        } catch (e) {}
+      }
+
+      function showToast(msg) {
+        const box = document.getElementById('toast-box');
+        if (!box) return;
+        box.textContent = msg;
+        box.classList.remove('hidden');
+        clearTimeout(box._timer);
+        box._timer = setTimeout(function () {
+          box.classList.add('hidden');
+        }, 3200);
+      }
+
+      // ==========================================
+      // 2. STATION METADATA & 3D WORLD COORDINATES
+      // ==========================================
+      const STATIONS = [
+        {
+          id: 0,
+          code: 'SECTOR 00 // NEXUS CORE',
+          shortLabel: '00 Nexus Core',
+          title: 'Vijith V.S — 3D Engineering Multiverse',
+          hint: 'Drag to orbit • Scroll/Pinch to zoom • Click any glowing 3D node or dock tab to warp camera.',
+          color: '#06b6d4',
+          pos: { x: 0, y: 0, z: 0 },
+          camPos: { x: 0, y: 6, z: 24 }
+        },
+        {
+          id: 1,
+          code: 'SECTOR 01 // FINTECH OMS',
+          shortLabel: '01 FinTech OMS',
+          title: 'Intelliflo RedBlack & Cloud Rebalancing',
+          hint: 'Multi-custodian portfolio rebalancing, Fixed Income Blocks, YAML Export API & Live Simulator.',
+          color: '#10b981',
+          pos: { x: 16, y: 3, z: -6 },
+          camPos: { x: 22, y: 6, z: 6 }
+        },
+        {
+          id: 2,
+          code: 'SECTOR 02 // CAREER HELIX',
+          shortLabel: '02 12+ Yr Career',
+          title: '12+ Years Full-Stack & Enterprise Architecture',
+          hint: 'Intelliflo RedBlack, RapidValue (HTA 2.0 300M+ tolls), PenThu Clinical Trials & CUSAT B.Tech.',
+          color: '#38bdf8',
+          pos: { x: 10, y: -4, z: 14 },
+          camPos: { x: 16, y: 0, z: 25 }
+        },
+        {
+          id: 3,
+          code: 'SECTOR 03 // VJ GROUP STUDIO',
+          shortLabel: '03 Mobile Games',
+          title: 'VJ Group Google Play & Unity Game Studio',
+          hint: '5 Verified Android Apps on Google Play + Playable Hidden Word Puzzle Mini-Game.',
+          color: '#a855f7',
+          pos: { x: -15, y: 4, z: 10 },
+          camPos: { x: -22, y: 7, z: 21 }
+        },
+        {
+          id: 4,
+          code: 'SECTOR 04 // QUANT & CLOUD LAB',
+          shortLabel: '04 Quant & Cloud',
+          title: 'VCP Swing Trading & Cloudflare/Supabase Automation',
+          hint: 'Market Regime Gatekeeper Calculator, TaxHarvest (Supabase), PickMyAC (Cloudflare) & n8n.',
+          color: '#f59e0b',
+          pos: { x: -16, y: -3, z: -9 },
+          camPos: { x: -23, y: 2, z: 3 }
+        },
+        {
+          id: 5,
+          code: 'SECTOR 05 // COMM-LINK & DEPLOY',
+          shortLabel: '05 Contact & Deploy',
+          title: 'Direct Comm-Link & GitHub.io Launch Blueprint',
+          hint: 'Connect via LinkedIn, GitHub, Email, or copy 1-click GitHub Pages deployment commands.',
+          color: '#ec4899',
+          pos: { x: 0, y: 9, z: -15 },
+          camPos: { x: 0, y: 12, z: -2 }
+        }
+      ];
+
+      let activeStationIndex = 0;
+      let autoTourActive = false;
+      let autoTourTimer = null;
+      let currentViewMode = 'split'; // '3d', 'split', 'dossier'
+      let mobileExpanded = false;
+
+      // ==========================================
+      // 3. THREE.JS 3D INTERACTIVE UNIVERSE
+      // ==========================================
+      const container = document.getElementById('canvas-container');
+      const labelsContainer = document.getElementById('labels-3d-container');
+      const scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x050811, 0.015);
+
+      const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 300);
+      camera.position.set(0, 6, 24);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setClearColor(0x050811, 1);
+      container.appendChild(renderer.domElement);
+
+      // Lighting
+      const ambientLight = new THREE.AmbientLight(0x94a3b8, 0.75);
+      scene.add(ambientLight);
+
+      const mainLight = new THREE.PointLight(0x06b6d4, 2.4, 90);
+      mainLight.position.set(10, 18, 15);
+      scene.add(mainLight);
+
+      const accentLight1 = new THREE.PointLight(0xa855f7, 1.8, 80);
+      accentLight1.position.set(-20, -10, 15);
+      scene.add(accentLight1);
+
+      const accentLight2 = new THREE.PointLight(0x10b981, 1.8, 80);
+      accentLight2.position.set(20, -8, -15);
+      scene.add(accentLight2);
+
+      // Subtle Cyber Grid Floor
+      const gridHelper = new THREE.GridHelper(120, 60, 0x06b6d4, 0x0f172a);
+      gridHelper.position.y = -11;
+      gridHelper.material.transparent = true;
+      gridHelper.material.opacity = 0.35;
+      scene.add(gridHelper);
+
+      // Starfield Particle System
+      const starCount = 1400;
+      const starGeo = new THREE.BufferGeometry();
+      const starPositions = new Float32Array(starCount * 3);
+      const starColors = new Float32Array(starCount * 3);
+      for (let i = 0; i < starCount; i++) {
+        starPositions[i * 3] = (Math.random() - 0.5) * 150;
+        starPositions[i * 3 + 1] = (Math.random() - 0.5) * 90;
+        starPositions[i * 3 + 2] = (Math.random() - 0.5) * 150;
+        const c = i % 3 === 0 ? new THREE.Color(0x06b6d4) : (i % 3 === 1 ? new THREE.Color(0x10b981) : new THREE.Color(0xa855f7));
+        starColors[i * 3] = c.r;
+        starColors[i * 3 + 1] = c.g;
+        starColors[i * 3 + 2] = c.b;
+      }
+      starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+      starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+      const starMat = new THREE.PointsMaterial({ size: 0.28, vertexColors: true, transparent: true, opacity: 0.75 });
+      const starField = new THREE.Points(starGeo, starMat);
+      scene.add(starField);
+
+      // Build 3D Station Meshes & Connecting Energy Conduits
+      const stationGroups = [];
+      const clickableMeshes = [];
+      const labelElements = [];
+
+      // Line connections from Core (0,0,0) to each sector node
+      const lineMaterial = new THREE.LineBasicMaterial({ color: 0x0ea5e9, transparent: true, opacity: 0.28 });
+
+      STATIONS.forEach(function (st, idx) {
+        const group = new THREE.Group();
+        group.position.set(st.pos.x, st.pos.y, st.pos.z);
+
+        const threeColor = new THREE.Color(st.color);
+
+        // Distinct 3D geometry per station
+        let coreGeo;
+        if (idx === 0) {
+          coreGeo = new THREE.IcosahedronGeometry(2.6, 1);
+        } else if (idx === 1) {
+          coreGeo = new THREE.OctahedronGeometry(2.1, 0);
+        } else if (idx === 2) {
+          coreGeo = new THREE.TorusKnotGeometry(1.35, 0.38, 64, 12);
+        } else if (idx === 3) {
+          coreGeo = new THREE.BoxGeometry(2.3, 2.3, 2.3);
+        } else if (idx === 4) {
+          coreGeo = new THREE.ConeGeometry(1.9, 3.0, 6);
+        } else {
+          coreGeo = new THREE.DodecahedronGeometry(1.9, 0);
+        }
+
+        const solidMat = new THREE.MeshStandardMaterial({
+          color: threeColor,
+          emissive: threeColor,
+          emissiveIntensity: 0.35,
+          roughness: 0.25,
+          metalness: 0.8,
+          flatShading: true
+        });
+        const coreMesh = new THREE.Mesh(coreGeo, solidMat);
+        coreMesh.userData = { stationIndex: idx };
+        group.add(coreMesh);
+        clickableMeshes.push(coreMesh);
+
+        // Outer Wireframe Shell
+        const wireGeo = coreGeo.clone();
+        const wireMat = new THREE.MeshBasicMaterial({
+          color: threeColor,
+          wireframe: true,
+          transparent: true,
+          opacity: 0.45
+        });
+        const wireMesh = new THREE.Mesh(wireGeo, wireMat);
+        wireMesh.scale.setScalar(1.28);
+        group.add(wireMesh);
+
+        // Orbital Ring around each station
+        const ringGeo = new THREE.TorusGeometry(idx === 0 ? 4.2 : 3.1, 0.05, 12, 64);
+        const ringMat = new THREE.MeshBasicMaterial({ color: threeColor, transparent: true, opacity: 0.65 });
+        const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+        ringMesh.rotation.x = Math.PI / 2.6;
+        group.add(ringMesh);
+
+        // Second cross ring for Core
+        if (idx === 0) {
+          const ring2 = new THREE.Mesh(
+            new THREE.TorusGeometry(5.3, 0.04, 12, 64),
+            new THREE.MeshBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.4 })
+          );
+          ring2.rotation.y = Math.PI / 3;
+          ring2.rotation.x = Math.PI / 4;
+          group.add(ring2);
+        }
+
+        // Connect to Nexus Core
+        if (idx > 0) {
+          const pts = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(st.pos.x, st.pos.y, st.pos.z)];
+          const lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
+          const line = new THREE.Line(lineGeo, lineMaterial);
+          scene.add(line);
+        }
+
+        scene.add(group);
+        stationGroups.push({ group: group, coreMesh: coreMesh, wireMesh: wireMesh, ringMesh: ringMesh });
+
+        // Create 3D Projected HTML Floating Badge
+        const badge = document.createElement('button');
+        badge.type = 'button';
+        badge.className = 'node-label-3d flex items-center gap-1.5 px-2.5 py-1 rounded-full cyber-glass text-[11px] font-mono-code font-semibold text-white border transition shadow-lg';
+        badge.style.borderColor = st.color;
+        badge.innerHTML = '<span class="w-2 h-2 rounded-full pulse-ring" style="background:' + st.color + '"></span><span>' + st.shortLabel + '</span>';
+        badge.addEventListener('click', function (e) {
+          e.stopPropagation();
+          warpToStation(idx);
+        });
+        labelsContainer.appendChild(badge);
+        labelElements.push(badge);
+      });
+
+      // Camera Flight & Orbit State
+      const camTargetPos = new THREE.Vector3(0, 6, 24);
+      const camLookAtTarget = new THREE.Vector3(0, 0, 0);
+      const currentLookAt = new THREE.Vector3(0, 0, 0);
+
+      // User Drag Orbit & Zoom Offsets
+      let isPointerDown = false;
+      let pointerStartX = 0;
+      let pointerStartY = 0;
+      let pointerMoved = false;
+      let sphericalTheta = 0;
+      let sphericalPhi = 0.22;
+      let orbitRadiusOffset = 0;
+
+      const raycaster = new THREE.Raycaster();
+      const pointerNDC = new THREE.Vector2();
+
+      container.addEventListener('pointerdown', function (e) {
+        initAudio();
+        isPointerDown = true;
+        pointerMoved = false;
+        pointerStartX = e.clientX;
+        pointerStartY = e.clientY;
+      });
+
+      window.addEventListener('pointermove', function (e) {
+        if (!isPointerDown) return;
+        const dx = e.clientX - pointerStartX;
+        const dy = e.clientY - pointerStartY;
+        if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+          pointerMoved = true;
+        }
+        sphericalTheta -= dx * 0.0055;
+        sphericalPhi = Math.max(-0.55, Math.min(1.15, sphericalPhi + dy * 0.0045));
+        pointerStartX = e.clientX;
+        pointerStartY = e.clientY;
+      });
+
+      window.addEventListener('pointerup', function (e) {
+        if (!isPointerDown) return;
+        isPointerDown = false;
+        if (!pointerMoved && e.target === renderer.domElement) {
+          // Raycast click on 3D station mesh
+          const rect = renderer.domElement.getBoundingClientRect();
+          pointerNDC.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+          pointerNDC.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+          raycaster.setFromCamera(pointerNDC, camera);
+          const hits = raycaster.intersectObjects(clickableMeshes, false);
+          if (hits.length > 0) {
+            const hitIdx = hits[0].object.userData.stationIndex;
+            if (typeof hitIdx === 'number') {
+              warpToStation(hitIdx);
+            }
+          }
+        }
+      });
+
+      container.addEventListener('wheel', function (e) {
+        orbitRadiusOffset = Math.max(-9, Math.min(18, orbitRadiusOffset + e.deltaY * 0.012));
+      }, { passive: true });
+
+      // ==========================================
+      // 4. STATION NAVIGATION & LAYOUT ENGINE
+      // ==========================================
+      function warpToStation(idx, fromAutoTour) {
+        if (idx < 0) idx = STATIONS.length - 1;
+        if (idx >= STATIONS.length) idx = 0;
+        activeStationIndex = idx;
+
+        if (!fromAutoTour && autoTourActive) {
+          toggleAutoTour(false);
+        }
+
+        playSynthTone('warp');
+
+        const st = STATIONS[idx];
+        sphericalTheta = 0;
+        sphericalPhi = 0.18;
+        orbitRadiusOffset = 0;
+
+        // Shift camera target slightly left on desktop split mode so the 3D object centers in the visible left viewport
+        const isDesktopSplit = window.innerWidth >= 768 && currentViewMode === 'split';
+        const xOffset = isDesktopSplit ? 4.2 : 0;
+
+        camTargetPos.set(st.camPos.x + xOffset, st.camPos.y, st.camPos.z);
+        camLookAtTarget.set(st.pos.x + xOffset * 0.55, st.pos.y, st.pos.z);
+
+        // Update Top-Left Telemetry Pill
+        document.getElementById('active-sector-code').textContent = st.code;
+        document.getElementById('active-sector-title').textContent = st.title;
+        document.getElementById('active-sector-hint').textContent = st.hint;
+
+        // Update Drawer Header
+        document.getElementById('drawer-header-label').textContent = st.code + ' — ' + st.shortLabel.toUpperCase();
+        document.getElementById('drawer-badge-dot').style.backgroundColor = st.color;
+
+        // Show Active Panel
+        document.querySelectorAll('.zone-panel').forEach(function (panel, pIdx) {
+          if (pIdx === idx) {
+            panel.classList.remove('hidden');
+          } else {
+            panel.classList.add('hidden');
+          }
+        });
+
+        const scrollBox = document.getElementById('hud-content-scroll');
+        if (scrollBox) scrollBox.scrollTop = 0;
+
+        // Update Bottom Dock Active Styling
+        document.querySelectorAll('.dock-btn').forEach(function (btn) {
+          const bIdx = parseInt(btn.getAttribute('data-dock-zone'), 10);
+          if (bIdx === idx) {
+            btn.className = 'dock-btn flex-1 min-w-[64px] py-1.5 px-2 rounded-lg bg-cyan-500/25 border border-cyan-400/60 text-cyan-200 font-mono-code text-[11px] font-semibold flex flex-col sm:flex-row items-center justify-center gap-1 transition shadow';
+          } else {
+            btn.className = 'dock-btn flex-1 min-w-[64px] py-1.5 px-2 rounded-lg hover:bg-slate-800/80 border border-transparent text-slate-300 font-mono-code text-[11px] flex flex-col sm:flex-row items-center justify-center gap-1 transition';
+          }
+        });
+      }
+
+      function setViewMode(mode) {
+        currentViewMode = mode;
+        const drawer = document.getElementById('hud-drawer');
+        const restoreBtn = document.getElementById('btn-restore-hud');
+        const b3d = document.getElementById('mode-3d-only');
+        const bSplit = document.getElementById('mode-split');
+        const bDossier = document.getElementById('mode-dossier');
+
+        const activeCls = 'px-2 py-1 rounded-md bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 font-medium transition';
+        const inactiveCls = 'px-2 py-1 rounded-md text-slate-300 hover:text-white transition font-medium';
+
+        b3d.className = mode === '3d' ? activeCls : inactiveCls;
+        bSplit.className = mode === 'split' ? activeCls : inactiveCls;
+        bDossier.className = (mode === 'dossier' ? activeCls : inactiveCls) + ' hidden sm:inline-block';
+
+        if (mode === '3d') {
+          drawer.classList.add('hidden');
+          restoreBtn.classList.remove('hidden');
+        } else if (mode === 'dossier') {
+          drawer.classList.remove('hidden');
+          restoreBtn.classList.add('hidden');
+          drawer.style.left = '1rem';
+          drawer.style.right = '1rem';
+          drawer.style.width = 'auto';
+        } else {
+          drawer.classList.remove('hidden');
+          restoreBtn.classList.add('hidden');
+          drawer.style.left = '';
+          drawer.style.right = '';
+          drawer.style.width = '';
+        }
+        playSynthTone('click');
+        warpToStation(activeStationIndex, true);
+      }
+
+      function toggleAutoTour(forceState) {
+        autoTourActive = typeof forceState === 'boolean' ? forceState : !autoTourActive;
+        const dot = document.getElementById('autotour-dot');
+        const btn = document.getElementById('btn-autotour');
+        clearInterval(autoTourTimer);
+        if (autoTourActive) {
+          dot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-ping';
+          btn.classList.add('border-emerald-400/60', 'text-emerald-300');
+          showToast('Auto-Flight Camera Tour Activated');
+          autoTourTimer = setInterval(function () {
+            warpToStation((activeStationIndex + 1) % STATIONS.length, true);
+          }, 5500);
+        } else {
+          dot.className = 'w-2 h-2 rounded-full bg-slate-500';
+          btn.classList.remove('border-emerald-400/60', 'text-emerald-300');
+        }
+      }
+
+      // Bind Navigation & Header Buttons
+      document.getElementById('btn-home-core').addEventListener('click', function () { warpToStation(0); });
+      document.getElementById('btn-prev-zone').addEventListener('click', function () { warpToStation(activeStationIndex - 1); });
+      document.getElementById('btn-next-zone').addEventListener('click', function () { warpToStation(activeStationIndex + 1); });
+      document.getElementById('btn-reset-cam').addEventListener('click', function () {
+        sphericalTheta = 0;
+        sphericalPhi = 0.18;
+        orbitRadiusOffset = 0;
+        warpToStation(activeStationIndex, true);
+      });
+
+      document.getElementById('mode-3d-only').addEventListener('click', function () { setViewMode('3d'); });
+      document.getElementById('mode-split').addEventListener('click', function () { setViewMode('split'); });
+      document.getElementById('mode-dossier').addEventListener('click', function () { setViewMode('dossier'); });
+      document.getElementById('btn-minimize-hud').addEventListener('click', function () { setViewMode('3d'); });
+      document.getElementById('btn-restore-hud').addEventListener('click', function () { setViewMode('split'); });
+
+      document.getElementById('btn-mobile-sheet-size').addEventListener('click', function () {
+        const drawer = document.getElementById('hud-drawer');
+        mobileExpanded = !mobileExpanded;
+        if (mobileExpanded) {
+          drawer.classList.remove('top-[42%]');
+          drawer.classList.add('top-16');
+        } else {
+          drawer.classList.remove('top-16');
+          drawer.classList.add('top-[42%]');
+        }
+        playSynthTone('click');
+      });
+
+      document.getElementById('btn-autotour').addEventListener('click', function () {
+        toggleAutoTour();
+      });
+
+      document.getElementById('btn-audio').addEventListener('click', function () {
+        soundEnabled = !soundEnabled;
+        document.getElementById('audio-icon').textContent = soundEnabled ? '🔊' : '🔇';
+        document.getElementById('audio-label').textContent = soundEnabled ? 'SFX ON' : 'MUTED';
+        if (soundEnabled) playSynthTone('click');
+      });
+
+      document.querySelectorAll('.dock-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          const z = parseInt(btn.getAttribute('data-dock-zone'), 10);
+          if (currentViewMode === '3d') setViewMode('split');
+          warpToStation(z);
+        });
+      });
+
+      document.querySelectorAll('.warp-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          const z = parseInt(btn.getAttribute('data-warp-zone'), 10);
+          warpToStation(z);
+        });
+      });
+
+      // Deploy Modal Controls
+      const deployModal = document.getElementById('deploy-modal');
+      document.getElementById('btn-deploy-modal').addEventListener('click', function () {
+        deployModal.classList.remove('hidden');
+        deployModal.classList.add('flex');
+        playSynthTone('click');
+      });
+      document.getElementById('btn-close-deploy').addEventListener('click', function () {
+        deployModal.classList.add('hidden');
+        deployModal.classList.remove('flex');
+      });
+
+      function copyTextSafe(text, successMsg) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () {
+            showToast(successMsg);
+          }).catch(function () {
+            fallbackCopy(text, successMsg);
+          });
+        } else {
+          fallbackCopy(text, successMsg);
+        }
+      }
+
+      function fallbackCopy(text, successMsg) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); } catch (e) {}
+        document.body.removeChild(ta);
+        showToast(successMsg);
+      }
+
+      document.getElementById('btn-copy-git').addEventListener('click', function () {
+        const cmds = [
+          'git init',
+          'git add index.html README.md .nojekyll',
+          'git commit -m "Launch Vijith V.S 3D Interactive Nexus Portfolio"',
+          'git branch -M main',
+          'git remote add origin https://github.com/vijithvenganoor/portfolio.git',
+          'git push -u origin main'
+        ].join('\n');
+        copyTextSafe(cmds, 'GitHub Pages commands copied to clipboard!');
+        playSynthTone('success');
+      });
+
+      // ==========================================
+      // 5. SKILLS CLOUD FILTER (ZONE 0)
+      // ==========================================
+      const SKILLS_DATA = [
+        { name: 'C# / .NET Core', cat: 'backend', level: 'Expert' },
+        { name: 'ASP.NET MVC & Web API', cat: 'backend', level: 'Expert' },
+        { name: 'LINQ & Entity Framework', cat: 'backend', level: 'Expert' },
+        { name: 'MS SQL Server & MySQL', cat: 'backend', level: 'Expert' },
+        { name: 'Microservices & REST/YAML', cat: 'backend', level: 'Advanced' },
+        { name: 'WCF & BizTalk / ForgeRock', cat: 'backend', level: 'Advanced' },
+        { name: 'Aurelia & TypeScript', cat: 'frontend', level: 'Expert' },
+        { name: 'Angular & JavaScript ES6+', cat: 'frontend', level: 'Advanced' },
+        { name: 'Unity 3D/2D Game Dev', cat: 'frontend', level: 'Advanced' },
+        { name: 'Google Play Console / PGS v2', cat: 'frontend', level: 'Advanced' },
+        { name: 'Three.js / WebGL & Tailwind', cat: 'frontend', level: 'Advanced' },
+        { name: 'Azure DevOps & Docker', cat: 'cloud', level: 'Advanced' },
+        { name: 'Cloudflare Edge & DNS/SSL', cat: 'cloud', level: 'Advanced' },
+        { name: 'Supabase & n8n Workflows', cat: 'cloud', level: 'Advanced' },
+        { name: 'GitHub Copilot & DeepSeek API', cat: 'cloud', level: 'Expert' },
+        { name: 'RabbitMQ & ELK Stack', cat: 'cloud', level: 'Intermediate' }
+      ];
+
+      function renderSkills(filter) {
+        const containerEl = document.getElementById('skills-tag-cloud');
+        containerEl.innerHTML = '';
+        SKILLS_DATA.filter(function (s) {
+          return filter === 'all' || s.cat === filter;
+        }).forEach(function (s) {
+          const span = document.createElement('span');
+          const colorCls = s.cat === 'backend'
+            ? 'border-emerald-500/40 text-emerald-200 bg-emerald-500/10'
+            : (s.cat === 'frontend' ? 'border-purple-500/40 text-purple-200 bg-purple-500/10' : 'border-cyan-500/40 text-cyan-200 bg-cyan-500/10');
+          span.className = 'px-2.5 py-1 rounded-lg border text-xs font-mono-code ' + colorCls;
+          span.textContent = s.name;
+          containerEl.appendChild(span);
+        });
+      }
+
+      document.querySelectorAll('.skill-filter-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          const filter = btn.getAttribute('data-skill-filter');
+          document.querySelectorAll('.skill-filter-btn').forEach(function (b) {
+            b.className = 'skill-filter-btn px-2 py-0.5 rounded bg-slate-800 text-slate-400';
+          });
+          btn.className = 'skill-filter-btn px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40';
+          renderSkills(filter);
+          playSynthTone('click');
+        });
+      });
+      renderSkills('all');
+
+      // ==========================================
+      // 6. FINTECH OMS REBALANCING SIMULATOR (ZONE 1)
+      // ==========================================
+      const aumSlider = document.getElementById('rebal-aum-slider');
+      const bandSlider = document.getElementById('rebal-band-slider');
+
+      function updateRebalanceSim(triggeredManually) {
+        const aum = parseFloat(aumSlider.value);
+        const band = parseFloat(bandSlider.value);
+        document.getElementById('rebal-aum-val').textContent = '$' + aum.toFixed(1) + 'M';
+        document.getElementById('rebal-band-val').textContent = '±' + band.toFixed(1) + '%';
+
+        const equityDrift = +(4.2 - band * 0.4).toFixed(1);
+        const fixedIncomeBlock = Math.round((aum * Math.abs(equityDrift) * 10000));
+        const taxHarvestSavings = Math.round(aum * 1420);
+
+        const out = document.getElementById('rebal-output');
+        out.innerHTML =
+          '<div class="flex justify-between text-slate-300"><span>US Large Cap Equity Drift:</span><span class="text-amber-300">+' + equityDrift + '% (Exceeds ±' + band.toFixed(1) + '% Band)</span></div>' +
+          '<div class="flex justify-between text-slate-300"><span>Fixed Income Block Order:</span><span class="text-emerald-300">BUY $' + fixedIncomeBlock.toLocaleString() + ' (Open API Validated)</span></div>' +
+          '<div class="flex justify-between text-slate-300"><span>Estimated Tax-Loss Harvest Alpha:</span><span class="text-cyan-300">+$' + taxHarvestSavings.toLocaleString() + ' YAML Export Ready</span></div>';
+
+        if (triggeredManually) {
+          playSynthTone('success');
+          showToast('OMS Block Orders Generated & Validated for $' + aum + 'M AUM');
+        }
+      }
+
+      aumSlider.addEventListener('input', function () { updateRebalanceSim(false); });
+      bandSlider.addEventListener('input', function () { updateRebalanceSim(false); });
+      document.getElementById('btn-run-rebalance').addEventListener('click', function () { updateRebalanceSim(true); });
+      updateRebalanceSim(false);
+
+      // ==========================================
+      // 7. PLAYABLE HIDDEN WORD PUZZLE MINI-GAME (ZONE 3)
+      // ==========================================
+      const TARGET_WORDS = ['UNITY', 'CLOUD', 'FINTECH', 'ALPHA', 'CSHARP'];
+      const GRID_LETTERS = [
+        'U','N','I','T','Y','X',
+        'C','L','O','U','D','P',
+        'F','I','N','T','E','C',
+        'A','L','P','H','A','H',
+        'C','S','H','A','R','P',
+        'V','I','J','I','T','H'
+      ];
+      let foundWords = [];
+      let selectedCells = [];
+      let playerCoins = 240;
+
+      function renderWordGame() {
+        const badge = document.getElementById('word-score-badge');
+        badge.textContent = 'Found: ' + foundWords.length + ' / ' + TARGET_WORDS.length + ' • 🪙 ' + playerCoins + ' Coins';
+
+        const targetsEl = document.getElementById('word-targets-list');
+        targetsEl.innerHTML = '';
+        TARGET_WORDS.forEach(function (w) {
+          const isFound = foundWords.indexOf(w) !== -1;
+          const pill = document.createElement('span');
+          pill.className = isFound
+            ? 'px-2.5 py-1 rounded-full text-xs font-mono-code font-bold bg-emerald-500/25 text-emerald-300 border border-emerald-400/50 line-through'
+            : 'px-2.5 py-1 rounded-full text-xs font-mono-code bg-slate-900 text-slate-300 border border-slate-700';
+          pill.textContent = isFound ? '✓ ' + w : w;
+          targetsEl.appendChild(pill);
+        });
+
+        const currentWord = selectedCells.map(function (idx) { return GRID_LETTERS[idx]; }).join('');
+        document.getElementById('current-word-display').textContent = currentWord || 'SELECT LETTERS...';
+
+        const board = document.getElementById('word-grid-board');
+        board.innerHTML = '';
+        GRID_LETTERS.forEach(function (ch, idx) {
+          const isSel = selectedCells.indexOf(idx) !== -1;
+          const cell = document.createElement('button');
+          cell.type = 'button';
+          cell.className = isSel
+            ? 'h-10 rounded-lg font-mono-code font-bold text-sm bg-purple-500 text-slate-950 border border-purple-300 shadow-lg scale-95 transition'
+            : 'h-10 rounded-lg font-mono-code font-bold text-sm bg-slate-900/90 hover:bg-slate-800 text-slate-100 border border-slate-700/80 transition';
+          cell.textContent = ch;
+          cell.addEventListener('click', function () {
+            const pos = selectedCells.indexOf(idx);
+            if (pos !== -1) {
+              selectedCells.splice(pos, 1);
+            } else if (selectedCells.length < 8) {
+              selectedCells.push(idx);
+            }
+            playSynthTone('click');
+            renderWordGame();
+          });
+          board.appendChild(cell);
+        });
+      }
+
+      document.getElementById('btn-word-clear').addEventListener('click', function () {
+        selectedCells = [];
+        renderWordGame();
+      });
+
+      document.getElementById('btn-word-submit').addEventListener('click', function () {
+        const word = selectedCells.map(function (idx) { return GRID_LETTERS[idx]; }).join('');
+        if (TARGET_WORDS.indexOf(word) !== -1 && foundWords.indexOf(word) === -1) {
+          foundWords.push(word);
+          playerCoins += 50;
+          selectedCells = [];
+          playSynthTone('success');
+          showToast('Awesome! Found "' + word + '" (+50 🪙)');
+          renderWordGame();
+        } else if (word === 'VIJITH') {
+            playerCoins += 100;
+            selectedCells = [];
+            playSynthTone('success');
+            showToast('Easter Egg Unlocked: VIJITH (+100 🪙 Bonus!)');
+            renderWordGame();
+        } else {
+          showToast('Not a target word — try spelling one of the listed words!');
+        }
+      });
+
+      document.getElementById('btn-word-hint').addEventListener('click', function () {
+        const remaining = TARGET_WORDS.filter(function (w) { return foundWords.indexOf(w) === -1; });
+        if (remaining.length === 0) {
+          showToast('All puzzle words already solved!');
+          return;
+        }
+        if (playerCoins < 30) {
+          showToast('Not enough coins for a hint!');
+          return;
+        }
+        playerCoins -= 30;
+        const nextWord = remaining[0];
+        foundWords.push(nextWord);
+        selectedCells = [];
+        playSynthTone('success');
+        showToast('Hint Revealed: "' + nextWord + '"!');
+        renderWordGame();
+      });
+
+      document.getElementById('btn-reset-wordgame').addEventListener('click', function () {
+        foundWords = [];
+        selectedCells = [];
+        playerCoins = 240;
+        renderWordGame();
+        showToast('Puzzle Grid Reset!');
+      });
+
+      renderWordGame();
+
+      // ==========================================
+      // 8. PRO SWING TRADING GATEKEEPER CALCULATOR (ZONE 4)
+      // ==========================================
+      let currentRegime = 'bull';
+      const capInput = document.getElementById('input-capital');
+      const entryInput = document.getElementById('input-entry');
+      const stopPctInput = document.getElementById('input-stop-pct');
+
+      function updateQuantCalc() {
+        const cap = Math.max(10000, parseFloat(capInput.value) || 500000);
+        const entry = Math.max(1, parseFloat(entryInput.value) || 250);
+        const stopPct = Math.max(0.5, parseFloat(stopPctInput.value) || 4.0);
+
+        const badge = document.getElementById('regime-badge');
+        const out = document.getElementById('quant-calc-output');
+
+        if (currentRegime === 'bear') {
+          badge.className = 'px-2.5 py-1 rounded-full text-[11px] font-mono-code font-bold bg-rose-500/20 text-rose-300 border border-rose-400/40';
+          badge.textContent = 'REGIME: DISTRIBUTION (CASH POSITION)';
+          out.innerHTML =
+            '<div class="text-rose-400 font-bold">⛔ GATEKEEPER LOCK: NO NEW SWING TRADES PERMITTED</div>' +
+            '<div class="text-slate-300">Macro breadth is undergoing institutional distribution. Per Vijith\'s Pro Swing Philosophy, <strong class="text-white">100% Cash (₹' + cap.toLocaleString('en-IN') + ')</strong> is an active, respected position.</div>';
+          return;
+        }
+
+        if (stopPct > 5.0) {
+          badge.className = 'px-2.5 py-1 rounded-full text-[11px] font-mono-code font-bold bg-amber-500/20 text-amber-300 border border-amber-400/40';
+          badge.textContent = 'RISK VIOLATION: STOP > 5%';
+          out.innerHTML =
+            '<div class="text-amber-400 font-bold">⚠️ STRICT RISK RULE: MAX STOP-LOSS CAPPED AT 3%–5%</div>' +
+            '<div class="text-slate-300">Current stop (' + stopPct.toFixed(1) + '%) exceeds the 5.0% maximum risk ceiling. Wait for tighter VCP base contraction before entry.</div>';
+          return;
+        }
+
+        const riskPerTradePct = currentRegime === 'bull' ? 0.015 : 0.0075; // 1.5% capital risk in bull, 0.75% in choppy
+        const maxRupeeRisk = Math.round(cap * riskPerTradePct);
+        const stopPrice = +(entry * (1 - stopPct / 100)).toFixed(2);
+        const riskPerShare = Math.max(0.05, +(entry - stopPrice).toFixed(2));
+        const shares = Math.floor(maxRupeeRisk / riskPerShare);
+        const target2R = +(entry + riskPerShare * 2).toFixed(2);
+        const target3R = +(entry + riskPerShare * 3).toFixed(2);
+        const trailBreakevenTrigger = +(entry * 1.035).toFixed(2);
+
+        badge.className = currentRegime === 'bull'
+          ? 'px-2.5 py-1 rounded-full text-[11px] font-mono-code font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/40'
+          : 'px-2.5 py-1 rounded-full text-[11px] font-mono-code font-bold bg-amber-500/20 text-amber-300 border border-amber-400/40';
+        badge.textContent = currentRegime === 'bull' ? 'REGIME: BULL EXPANSION ✓' : 'REGIME: CHOPPY (HALF SIZE)';
+
+        out.innerHTML =
+          '<div class="flex justify-between"><span>Single Active Position Size:</span><span class="text-white font-bold">' + shares + ' Shares (₹' + Math.round(shares * entry).toLocaleString('en-IN') + ')</span></div>' +
+          '<div class="flex justify-between"><span>Hard Stop-Loss (' + stopPct.toFixed(1) + '%):</span><span class="text-rose-300">₹' + stopPrice + ' (Max Risk: ₹' + maxRupeeRisk.toLocaleString('en-IN') + ')</span></div>' +
+          '<div class="flex justify-between"><span>Breakeven Trail Trigger (+3.5%):</span><span class="text-amber-300">₹' + trailBreakevenTrigger + '</span></div>' +
+          '<div class="flex justify-between"><span>Target 1:2 / 1:3 R:R:</span><span class="text-emerald-300 font-bold">₹' + target2R + ' / ₹' + target3R + '</span></div>';
+      }
+
+      document.querySelectorAll('.regime-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          currentRegime = btn.getAttribute('data-regime');
+          document.querySelectorAll('.regime-btn').forEach(function (b) {
+            b.className = 'regime-btn py-1.5 px-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-300';
+          });
+          btn.className = 'regime-btn py-1.5 px-2 rounded-lg bg-emerald-500/25 border border-emerald-400 text-emerald-200 font-semibold';
+          playSynthTone('click');
+          updateQuantCalc();
+        });
+      });
+
+      capInput.addEventListener('input', updateQuantCalc);
+      entryInput.addEventListener('input', updateQuantCalc);
+      stopPctInput.addEventListener('input', updateQuantCalc);
+      updateQuantCalc();
+
+      // ==========================================
+      // 9. CONTACT TRANSMISSION & CLIPBOARD (ZONE 5)
+      // ==========================================
+      document.getElementById('contact-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const name = document.getElementById('msg-name').value.trim();
+        const topic = document.getElementById('msg-topic').value.trim();
+        const body = document.getElementById('msg-body').value.trim();
+        const mailto = 'mailto:vijithvenganoor@gmail.com?subject=' +
+          encodeURIComponent('[3D Portfolio] ' + topic + ' — from ' + name) +
+          '&body=' + encodeURIComponent(body + '\n\n— ' + name);
+        playSynthTone('success');
+        showToast('Opening email client addressed to vijithvenganoor@gmail.com');
+        window.open(mailto, '_blank');
+      });
+
+      document.getElementById('btn-copy-email').addEventListener('click', function () {
+        copyTextSafe('vijithvenganoor@gmail.com', 'Copied vijithvenganoor@gmail.com to clipboard!');
+        playSynthTone('click');
+      });
+
+      // ==========================================
+      // 10. ANIMATION LOOP & 3D LABEL PROJECTION
+      // ==========================================
+      let frameCount = 0;
+      let lastFpsTime = performance.now();
+      const tempProjVec = new THREE.Vector3();
+
+      function animate(now) {
+        requestAnimationFrame(animate);
+
+        // FPS Telemetry Counter
+        frameCount++;
+        if (now - lastFpsTime >= 1000) {
+          const fpsEl = document.getElementById('fps-counter');
+          if (fpsEl) fpsEl.textContent = Math.min(60, frameCount) + ' FPS';
+          frameCount = 0;
+          lastFpsTime = now;
+        }
+
+        const t = now * 0.001;
+
+        // Rotate Starfield & Station Meshes
+        starField.rotation.y = t * 0.03;
+        stationGroups.forEach(function (item, idx) {
+          item.coreMesh.rotation.y = t * (0.45 + idx * 0.08);
+          item.coreMesh.rotation.x = t * 0.25;
+          item.wireMesh.rotation.y = -t * 0.35;
+          item.ringMesh.rotation.z = t * 0.5;
+          item.group.position.y = STATIONS[idx].pos.y + Math.sin(t * 1.5 + idx) * 0.35;
+        });
+
+        // Smooth Camera Interpolation + User Spherical Orbit Offset
+        const desiredCam = camTargetPos.clone();
+        const offsetVec = desiredCam.clone().sub(camLookAtTarget);
+        const radius = Math.max(7, offsetVec.length() + orbitRadiusOffset);
+        const baseAngle = Math.atan2(offsetVec.x, offsetVec.z) + sphericalTheta;
+        desiredCam.x = camLookAtTarget.x + radius * Math.sin(baseAngle) * Math.cos(sphericalPhi);
+        desiredCam.z = camLookAtTarget.z + radius * Math.cos(baseAngle) * Math.cos(sphericalPhi);
+        desiredCam.y = camLookAtTarget.y + radius * Math.sin(sphericalPhi);
+
+        camera.position.lerp(desiredCam, 0.065);
+        currentLookAt.lerp(camLookAtTarget, 0.08);
+        camera.lookAt(currentLookAt);
+
+        renderer.render(scene, camera);
+
+        // Project 3D Station Positions to 2D Screen Coordinates for Floating Labels
+        const halfW = window.innerWidth / 2;
+        const halfH = window.innerHeight / 2;
+        stationGroups.forEach(function (item, idx) {
+          const badge = labelElements[idx];
+          tempProjVec.copy(item.group.position);
+          tempProjVec.y += (idx === 0 ? 3.6 : 2.8);
+          tempProjVec.project(camera);
+
+          // Check if in front of camera
+          if (tempProjVec.z < 1 && currentViewMode !== 'dossier') {
+            const x = (tempProjVec.x * halfW) + halfW;
+            const y = -(tempProjVec.y * halfH) + halfH;
+            badge.style.left = x + 'px';
+            badge.style.top = y + 'px';
+            badge.style.opacity = idx === activeStationIndex ? '1' : '0.78';
+            badge.style.display = 'flex';
+          } else {
+            badge.style.display = 'none';
+          }
+        });
+      }
+
+      window.addEventListener('resize', function () {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      window.onload = function () {
+        warpToStation(0, true);
+        requestAnimationFrame(animate);
+      };
+    })();
+  </script>
+</body>
+</html>
