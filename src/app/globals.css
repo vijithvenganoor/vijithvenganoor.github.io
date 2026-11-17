@@ -1,0 +1,134 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,700;1,500;1,700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-parchment: #FAF7F2;
+  --color-sage: #DCE3D8;
+  --color-sand: #E8DFD1;
+  --color-charcoal: #18181B;
+  --color-slate: #52525B;
+  --color-terracotta: #C85A32;
+  --color-forest: #3A5A40;
+  --color-slate-teal: rgba(44, 62, 76, 0.08);
+
+  --font-inter: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Instrument Serif', 'Playfair Display', Georgia, serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+  background-color: var(--color-parchment);
+  color: var(--color-charcoal);
+  font-family: var(--font-inter);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  overflow-x: hidden;
+  background: radial-gradient(
+    circle at 50% 30%,
+    #FAF7F2 0%,
+    #F6F2EB 45%,
+    #EFE9DF 80%,
+    #E8DFD1 100%
+  );
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Subtle watercolor paper grain texture simulation */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  z-index: 999;
+  background-image: radial-gradient(#2C3E4C 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Studio parchment vignette around viewport edges */
+.studio-vignette {
+  background: radial-gradient(
+    ellipse at center,
+    transparent 55%,
+    rgba(220, 227, 216, 0.4) 85%,
+    rgba(44, 62, 76, 0.08) 100%
+  );
+}
+
+/* Character sunlight halo */
+.character-halo {
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 238, 204, 0.8) 0%,
+    rgba(232, 223, 209, 0.5) 45%,
+    rgba(220, 227, 216, 0.2) 70%,
+    transparent 85%
+  );
+  filter: blur(40px);
+}
+
+/* Glassmorphism callouts */
+.glass-panel {
+  background: rgba(250, 247, 242, 0.78);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(232, 223, 209, 0.85);
+  box-shadow: 0 16px 36px -12px rgba(44, 62, 76, 0.07), 0 0 1px 1px rgba(255, 255, 255, 0.8);
+}
+
+.glass-panel-hover {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-panel-hover:hover {
+  background: rgba(250, 247, 242, 0.94);
+  transform: translateY(-3px);
+  box-shadow: 0 24px 48px -12px rgba(44, 62, 76, 0.12), 0 0 1px 1px rgba(255, 255, 255, 0.9);
+  border-color: rgba(200, 90, 50, 0.35);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #FAF7F2;
+}
+::-webkit-scrollbar-thumb {
+  background: #DCE3D8;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #C85A32;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.6;
+  }
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Hide scrollbars in specific horizontal containers */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
