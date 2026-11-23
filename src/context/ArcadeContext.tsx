@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
-export type GameId = 'snake' | 'breakout' | 'dodger' | 'neon-breaker';
+export type GameId = 'snake' | 'breakout' | 'dodger';
 
 export interface GameInfo {
   id: GameId;
@@ -42,15 +42,6 @@ export const GAMES_LIST: GameInfo[] = [
     controlsHint: 'Mouse or Arrow / WASD keys to pilot • Collect gold stars',
     iconName: 'rocket',
   },
-  {
-    id: 'neon-breaker',
-    title: 'Neon Breaker: Overdrive',
-    tagline: 'Cyberpunk breakout with multi-tier lasers, particle cascades, dynamic combos & retro audio.',
-    category: 'ARCADE // OVERDRIVE',
-    accentColor: 'border-fuchsia-400 text-fuchsia-400 bg-fuchsia-950/30',
-    controlsHint: 'Mouse or touch drag to move • Space or click to launch • P to pause',
-    iconName: 'zap',
-  },
 ];
 
 interface ArcadeContextType {
@@ -75,7 +66,6 @@ export function ArcadeProvider({ children }: { children: React.ReactNode }) {
     snake: 0,
     breakout: 0,
     dodger: 0,
-    'neon-breaker': 0,
   });
 
   // Load high scores from localStorage

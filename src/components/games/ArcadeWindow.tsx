@@ -156,7 +156,7 @@ export default function ArcadeWindow() {
               </div>
 
               {/* Games Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {GAMES_LIST.map((game) => {
                   const Icon = ICON_MAP[game.iconName as keyof typeof ICON_MAP] || Gamepad2;
                   const highScore = highScores[game.id] || 0;

@@ -242,10 +242,10 @@ export default function ProductsSection() {
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             </div>
             <h3 className="text-lg sm:text-xl font-extrabold text-charcoal-900">
-              Take a Break: Play 4 Built-In Mini-Games
+              Take a Break: Play 3 Built-In Mini-Games
             </h3>
             <p className="text-xs text-charcoal-600">
-              Cyberpunk Snake • Neon Brick Breaker • Astro Dodger • Neon Breaker. 60fps canvas physics, synthesized sound &amp; zero install.
+              Cyberpunk Snake • Neon Brick Breaker • Astro Dodger. 60fps canvas physics, synthesized sound &amp; zero install.
             </p>
           </div>
         </div>
@@ -268,12 +268,6 @@ export default function ProductsSection() {
             className="px-3 py-1.5 rounded-xl bg-charcoal-900 hover:bg-terracotta-600 text-parchment-50 text-xs font-mono font-bold transition-colors shadow-sm"
           >
             🚀 Dodger
-          </button>
-          <button
-            onClick={() => playGame('neon-breaker')}
-            className="px-3 py-1.5 rounded-xl bg-charcoal-900 hover:bg-fuchsia-600 text-parchment-50 text-xs font-mono font-bold transition-colors shadow-sm"
-          >
-            ⚡ Neon Breaker
           </button>
           <button
             onClick={openHub}
