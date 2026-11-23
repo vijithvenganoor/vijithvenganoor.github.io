@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NEON BREAKER: OVERDRIVE</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Orbitron & Rajdhani for Cyberpunk HUD -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-dark: #070810;
+            --neon-cyan: #00f3ff;
+            --neon-magenta: #ff007f;
+            --neon-purple: #b500ff;
+            --neon-green: #00ff66;
+            --neon-gold: #ffcc00;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-dark);
+            color: #ffffff;
+            font-family: 'Rajdhani', sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        .font-cyber {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Subtle CRT Scanline Overlay */
+        .scanlines {
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0, 243, 255, 0.03) 50%,
+                rgba(0, 0, 0, 0.25)
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+        }
+
+        /* Neon Glow Utilities */
+        .glow-cyan {
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.8), 0 0 20px rgba(0, 243, 255, 0.4);
+        }
+        .glow-magenta {
+            text-shadow: 0 0 10px rgba(255, 0, 127, 0.8), 0 0 20px rgba(255, 0, 127, 0.4);
+        }
+        .glow-gold {
+            text-shadow: 0 0 10px rgba(255, 204, 0, 0.8), 0 0 20px rgba(255, 204, 0, 0.4);
+        }
+
+        .box-glow-cyan {
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.25), inset 0 0 15px rgba(0, 243, 255, 0.1);
+        }
+
+        /* Neon Arcade Button */
+        .cyber-btn {
+            position: relative;
+            background: linear-gradient(135deg, rgba(0, 243, 255, 0.18) 0%, rgba(181, 0, 255, 0.18) 100%);
+            border: 1px solid var(--neon-cyan);
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.3), inset 0 0 10px rgba(0, 243, 255, 0.15);
+        }
+        .cyber-btn:hover {
+            background: linear-gradient(135deg, rgba(0, 243, 255, 0.35) 0%, rgba(255, 0, 127, 0.35) 100%);
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.65), inset 0 0 15px rgba(0, 243, 255, 0.35);
+            transform: translateY(-2px) scale(1.02);
+        }
+        .cyber-btn:active {
+            transform: translateY(1px) scale(0.98);
+        }
+
+        .icon-btn {
+            background: rgba(15, 18, 34, 0.85);
+            border: 1px solid rgba(0, 243, 255, 0.35);
+            color: #00f3ff;
+            transition: all 0.18s ease;
+        }
+        .icon-btn:hover {
+            background: rgba(0, 243, 255, 0.2);
+            border-color: #00f3ff;
+            box-shadow: 0 0 12px rgba(0, 243, 255, 0.5);
+            color: #ffffff;
+        }
+
+        /* Glassmorphic Overlay Panel */
+        .glass-panel {
+            background: rgba(9, 11, 22, 0.86);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(0, 243, 255, 0.35);
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 243, 255, 0.18);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: none;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen w-screen overflow-hidden bg-[#070810] select-none">
+
+    <!-- Scanline effect overlay -->
+    <div class="scanlines fixed inset-0 z-40"></div>
+
+    <!-- TOP HUD BAR -->
+    <header class="relative z-30 flex flex-wrap items-center justify-between px-3 sm:px-6 py-2.5 bg-[#090b16]/90 border-b border-cyan-500/30 backdrop-blur-md">
+        <!-- Brand / Title -->
+        <div class="flex items-center gap-2.5">
+            <div class="w-3 h-3 rounded-full bg-cyan-400 animate-ping"></div>
+            <h1 class="font-cyber text-sm sm:text-lg font-black tracking-wider text-cyan-400 glow-cyan">
+                NEON BREAKER <span class="text-pink-500 glow-magenta hidden md:inline">// OVERDRIVE</span>
+            </h1>
+        </div>
+
+        <!-- Telemetry Stats -->
+        <div class="flex items-center gap-3 sm:gap-6 text-xs sm:text-sm md:text-base font-semibold tracking-wider">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:gap-1.5">
+                <span class="text-slate-400 text-[10px] sm:text-xs uppercase">Score</span>
+                <span id="hudScore" class="font-cyber text-cyan-300 font-bold text-sm sm:text-base">00000</span>
+            </div>
+
+            <div class="flex flex-col sm:flex-row sm:items-center sm:gap-1.5">
+                <span class="text-slate-400 text-[10px] sm:text-xs uppercase">Combo</span>
+                <span id="hudCombo" class="font-cyber text-pink-400 font-bold text-sm sm:text-base">1x</span>
+            </div>
+
+            <div class="flex flex-col sm:flex-row sm:items-center sm:gap-1.5">
+                <span class="text-slate-400 text-[10px] sm:text-xs uppercase">Level</span>
+                <span id="hudLevel" class="font-cyber text-purple-400 font-bold text-sm sm:text-base">01</span>
+            </div>
+
+            <div class="flex flex-col sm:flex-row sm:items-center sm:gap-1.5">
+                <span class="text-slate-400 text-[10px] sm:text-xs uppercase">Lives</span>
+                <div id="hudLives" class="flex items-center gap-1 text-pink-500 text-xs sm:text-sm">
+                    <i class="fa-solid fa-heart"></i>
+                    <i class="fa-solid fa-heart"></i>
+                    <i class="fa-solid fa-heart"></i>
+                </div>
+            </div>
+
+            <div class="hidden lg:flex items-center gap-1.5 border-l border-slate-700/80 pl-5">
+                <span class="text-slate-400 text-xs uppercase">Best</span>
+                <span id="hudHighScore" class="font-cyber text-amber-400 glow-gold font-bold">00000</span>
+            </div>
+        </div>
+
+        <!-- Quick Controls -->
+        <div class="flex items-center gap-2">
+            <button id="btnLaunch" title="Launch Ball (Space / Tap)" class="icon-btn px-2.5 py-1.5 rounded-lg text-xs font-cyber font-bold flex items-center gap-1.5">
+                <i class="fa-solid fa-rocket text-pink-400"></i>
+                <span class="hidden sm:inline">LAUNCH</span>
+            </button>
+            <button id="btnPause" title="Pause / Resume (P or Esc)" class="icon-btn w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center">
+                <i id="pauseIcon" class="fa-solid fa-pause text-xs sm:text-sm"></i>
+            </button>
+            <button id="btnMute" title="Toggle Audio (M)" class="icon-btn w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center">
+                <i id="muteIcon" class="fa-solid fa-volume-high text-xs sm:text-sm"></i>
+            </button>
+            <button id="btnRestart" title="Restart Game (R)" class="icon-btn w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center">
+                <i class="fa-solid fa-rotate-right text-xs sm:text-sm"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN GAME VIEWPORT -->
+    <main id="gameContainer" class="relative flex-1 w-full h-full overflow-hidden flex items-center justify-center bg-[#070810]">
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Active Power-up Status Pills (Top-Left inside viewport) -->
+        <div id="powerupHud" class="absolute top-3 left-3 z-20 flex flex-col gap-1.5 pointer-events-none"></div>
+
+        <!-- OVERLAY: START / PAUSE / LEVEL CLEAR / GAME OVER -->
+        <div id="overlayModal" class="absolute inset-0 z-30 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-300">
+            <div class="glass-panel rounded-2xl max-w-md w-full p-6 sm:p-8 text-center relative overflow-hidden">
+                <!-- Decorative top neon bar -->
+                <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 via-pink-500 to-purple-500"></div>
+
+                <div id="overlayBadge" class="inline-block px-3 py-0.5 rounded-full text-[11px] font-cyber uppercase tracking-widest bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 mb-3">
+                    SYSTEM READY // V2.4
+                </div>
+
+                <h2 id="overlayTitle" class="font-cyber text-2xl sm:text-4xl font-black tracking-wider text-white glow-cyan mb-2">
+                    NEON BREAKER
+                </h2>
+                <p id="overlaySubtitle" class="text-pink-400 font-cyber text-xs sm:text-sm tracking-widest uppercase mb-5">
+                    OVERDRIVE PROTOCOL
+                </p>
+
+                <!-- Dynamic Stats Summary (Hidden on Initial Start) -->
+                <div id="overlayStats" class="hidden grid-cols-2 gap-3 mb-6 p-3.5 rounded-xl bg-slate-900/80 border border-slate-800">
+                    <div>
+                        <div class="text-xs text-slate-400 uppercase">Final Score</div>
+                        <div id="modalScore" class="font-cyber text-xl text-cyan-400 font-bold">0</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-400 uppercase">High Score</div>
+                        <div id="modalHighScore" class="font-cyber text-xl text-amber-400 font-bold">0</div>
+                    </div>
+                </div>
+
+                <!-- Power-Up Legend -->
+                <div id="overlayLegend" class="text-left bg-slate-950/75 border border-cyan-500/20 rounded-xl p-3.5 mb-6 space-y-2 text-xs sm:text-sm">
+                    <div class="text-cyan-300 font-cyber text-xs uppercase tracking-wider mb-2 flex items-center justify-between">
+                        <span><i class="fa-solid fa-bolt mr-1.5"></i>Power-Up Drops</span>
+                        <span class="text-slate-400 text-[11px]">Collect with Paddle</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="flex items-center gap-2">
+                            <span class="w-5 h-5 rounded bg-cyan-500/20 border border-cyan-400 text-cyan-300 font-cyber text-[10px] flex items-center justify-center font-bold">W</span>
+                            <span class="text-slate-200">Expand Paddle</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-5 h-5 rounded bg-purple-500/20 border border-purple-400 text-purple-300 font-cyber text-[10px] flex items-center justify-center font-bold">M</span>
+                            <span class="text-slate-200">Multi-Ball (x3)</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-5 h-5 rounded bg-amber-500/20 border border-amber-400 text-amber-300 font-cyber text-[10px] flex items-center justify-center font-bold">F</span>
+                            <span class="text-slate-200">Overdrive Fireball</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-5 h-5 rounded bg-green-500/20 border border-green-400 text-green-300 font-cyber text-[10px] flex items-center justify-center font-bold">+1</span>
+                            <span class="text-slate-200">Extra Life Heart</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls Info -->
+                <div class="text-xs text-slate-400 mb-6 flex items-center justify-center gap-4 flex-wrap">
+                    <span><i class="fa-solid fa-keyboard text-cyan-400 mr-1"></i> Arrows / A-D / Space</span>
+                    <span><i class="fa-solid fa-computer-mouse text-pink-400 mr-1"></i> Mouse / Touch Drag</span>
+                </div>
+
+                <!-- Primary Action Button -->
+                <button id="btnModalPrimary" class="cyber-btn w-full py-3.5 px-6 rounded-xl font-cyber font-bold text-sm sm:text-base cursor-pointer">
+                    INITIALIZE SYSTEM
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER / MOBILE HINT BAR -->
+    <footer class="relative z-30 flex items-center justify-between px-4 py-1.5 bg-[#090b16]/90 border-t border-cyan-500/20 text-[11px] text-slate-400">
+        <div class="flex items-center gap-3">
+            <span class="text-cyan-400 font-cyber">STATUS:</span>
+            <span id="statusText" class="text-slate-300">AWAITING LAUNCH...</span>
+        </div>
+        <div class="hidden sm:flex items-center gap-4">
+            <span><strong class="text-cyan-400">SPACE / CLICK:</strong> Launch Ball</span>
+            <span><strong class="text-cyan-400">P:</strong> Pause</span>
+            <span><strong class="text-cyan-400">M:</strong> Mute</span>
+        </div>
+        <div class="sm:hidden text-cyan-300">
+            Drag anywhere to steer • Tap to launch
+        </div>
+    </footer>
+
+    <!-- GAME ENGINE SCRIPT -->
+    <script>
+        (function () {
+            "use strict";
+
+            // ============================================================================
+            // 1. PROCEDURAL WEB AUDIO SYNTHESIZER (Zero External Assets)
+            // ============================================================================
+            class CyberAudio {
+                constructor() {
+                    this.ctx = null;
+                    this.muted = false;
+                }
+
+                init() {
+                    if (!this.ctx) {
+                        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                        if (AudioCtx) {
+                            this.ctx = new AudioCtx();
+                        }
+                    }
+                    if (this.ctx && this.ctx.state === "suspended") {
+                        this.ctx.resume();
+                    }
+                }
+
+                toggleMute() {
+                    this.muted = !this.muted;
+                    return this.muted;
+                }
+
+                playTone(freq, type, duration, vol = 0.15, slideFreq = null) {
+                    if (this.muted) return;
+                    this.init();
+                    if (!this.ctx) return;
+
+                    try {
+                        const now = this.ctx.currentTime;
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+
+                        osc.type = type;
+                        osc.frequency.setValueAtTime(freq, now);
+                        if (slideFreq) {
+                            osc.frequency.exponentialRampToValueAtTime(slideFreq, now + duration);
+                        }
+
+                        gain.gain.setValueAtTime(vol, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+
+                        osc.start(now);
+                        osc.stop(now + duration);
+                    } catch (e) {
+                        // Ignore audio context errors if user hasn't interacted yet
+                    }
+                }
+
+                paddleHit() {
+                    this.playTone(320, "triangle", 0.09, 0.2, 480);
+                }
+
+                wallHit() {
+                    this.playTone(210, "sine", 0.06, 0.12, 180);
+                }
+
+                brickDamage() {
+                    this.playTone(440, "square", 0.07, 0.12, 390);
+                }
+
+                brickBreak(combo = 1) {
+                    // Rising synth pitch with higher combos
+                    const baseFreq = Math.min(280 + combo * 45, 1100);
+                    this.playTone(baseFreq, "sawtooth", 0.14, 0.16, baseFreq * 1.45);
+                }
+
+                overdriveSmash() {
+                    this.playTone(160, "sawtooth", 0.16, 0.22, 620);
+                }
+
+                powerUpCollect() {
+                    this.playTone(523.25, "sine", 0.08, 0.18, 659.25);
+                    setTimeout(() => this.playTone(659.25, "sine", 0.1, 0.18, 1046.5), 70);
+                }
+
+                lifeLost() {
+                    this.playTone(260, "sawtooth", 0.35, 0.22, 75);
+                }
+
+                levelClear() {
+                    const notes = [440, 554.37, 659.25, 880];
+                    notes.forEach((n, idx) => {
+                        setTimeout(() => this.playTone(n, "triangle", 0.18, 0.2, n * 1.05), idx * 95);
+                    });
+                }
+            }
+
+            const audio = new CyberAudio();
+
+            // ============================================================================
+            // 2. CONSTANTS & LOGICAL COORDINATE SYSTEM
+            // ============================================================================
+            const LOGICAL_WIDTH = 960;
+            const LOGICAL_HEIGHT = 600;
+
+            const COLORS = {
+                bg: "#070810",
+                cyan: "#00f3ff",
+                magenta: "#ff007f",
+                purple: "#b500ff",
+                green: "#00ff66",
+                gold: "#ffcc00",
+                white: "#ffffff"
+            };
+
+            const POWERUP_TYPES = [
+                { id: "EXPAND", label: "W", name: "EXPAND PADDLE", color: COLORS.cyan },
+                { id: "MULTIBALL", label: "M", name: "MULTI-BALL x3", color: COLORS.purple },
+                { id: "OVERDRIVE", label: "F", name: "OVERDRIVE FIREBALL", color: COLORS.gold },
+                { id: "LIFE", label: "+1", name: "EXTRA HEART", color: COLORS.green }
+            ];
+
+            // ============================================================================
+            // 3. DOM ELEMENTS
+            // ============================================================================
+            const canvas = document.getElementById("gameCanvas");
+            const ctx = canvas.getContext("2d");
+            const container = document.getElementById("gameContainer");
+
+            const hudScore = document.getElementById("hudScore");
+            const hudCombo = document.getElementById("hudCombo");
+            const hudLevel = document.getElementById("hudLevel");
+            const hudLives = document.getElementById("hudLives");
+            const hudHighScore = document.getElementById("hudHighScore");
+            const powerupHud = document.getElementById("powerupHud");
+            const statusText = document.getElementById("statusText");
+
+            const overlayModal = document.getElementById("overlayModal");
+            const overlayBadge = document.getElementById("overlayBadge");
+            const overlayTitle = document.getElementById("overlayTitle");
+            const overlaySubtitle = document.getElementById("overlaySubtitle");
+            const overlayStats = document.getElementById("overlayStats");
+            const overlayLegend = document.getElementById("overlayLegend");
+            const modalScore = document.getElementById("modalScore");
+            const modalHighScore = document.getElementById("modalHighScore");
+            const btnModalPrimary = document.getElementById("btnModalPrimary");
+
+            const btnLaunch = document.getElementById("btnLaunch");
+            const btnPause = document.getElementById("btnPause");
+            const pauseIcon = document.getElementById("pauseIcon");
+            const btnMute = document.getElementById("btnMute");
+            const muteIcon = document.getElementById("muteIcon");
+            const btnRestart = document.getElementById("btnRestart");
+
+            // ============================================================================
+            // 4. GAME STATE & ENTITIES
+            // ============================================================================
+            let gameState = "START"; // START, PLAYING, PAUSED, LEVEL_CLEAR, GAME_OVER
+            let score = 0;
+            let highScore = 0;
+            let level = 1;
+            let lives = 3;
+            let combo = 1;
+            let screenShake = 0;
+            let gridOffset = 0;
+
+            // Active timed powerups (seconds remaining)
+            let activeEffects = {
+                expand: 0,
+                overdrive: 0
+            };
+
+            // Load High Score safely from localStorage
+            try {
+                const saved = localStorage.getItem("neon_breaker_highscore");
+                if (saved) highScore = parseInt(saved, 10) || 0;
+            } catch (e) {
+                highScore = 0;
+            }
+
+            // Paddle Object
+            const paddle = {
+                baseWidth: 135,
+                width: 135,
+                height: 16,
+                x: LOGICAL_WIDTH / 2 - 135 / 2,
+                y: LOGICAL_HEIGHT - 44,
+                speed: 760,
+                vx: 0,
+                targetX: null
+            };
+
+            let balls = [];
+            let bricks = [];
+            let particles = [];
+            let powerUps = [];
+            let floatingTexts = [];
+
+            // Keyboard input state
+            const keys = {
+                left: false,
+                right: false
+            };
+
+            // ============================================================================
+            // 5. INITIALIZATION & LEVEL GENERATOR
+            // ============================================================================
+            function createBall(x, y, vx, vy, stuck = true) {
+                return {
+                    x: x,
+                    y: y,
+                    radius: 8,
+                    vx: vx,
+                    vy: vy,
+                    speed: Math.min(430 + (level - 1) * 32, 680),
+                    stuck: stuck,
+                    trail: []
+                };
+            }
+
+            function resetBallAndPaddle() {
+                paddle.width = activeEffects.expand > 0 ? paddle.baseWidth * 1.48 : paddle.baseWidth;
+                paddle.x = LOGICAL_WIDTH / 2 - paddle.width / 2;
+                paddle.targetX = null;
+
+                const baseSpeed = Math.min(430 + (level - 1) * 32, 680);
+                balls = [
+                    createBall(
+                        paddle.x + paddle.width / 2,
+                        paddle.y - 10,
+                        baseSpeed * 0.45 * (Math.random() > 0.5 ? 1 : -1),
+                        -baseSpeed * 0.88,
+                        true
+                    )
+                ];
+                combo = 1;
+                updateHUD();
+                statusText.textContent = "PRESS SPACE OR TAP TO LAUNCH BALL";
+            }
+
+            function buildLevel(lvl) {
+                bricks = [];
+                powerUps = [];
+                particles = [];
+                floatingTexts = [];
+
+                const cols = 10;
+                const rows = Math.min(4 + lvl, 8);
+                const padding = 10;
+                const offsetTop = 68;
+                const offsetLeft = 58;
+                const totalPlayWidth = LOGICAL_WIDTH - offsetLeft * 2;
+                const brickWidth = (totalPlayWidth - padding * (cols - 1)) / cols;
+                const brickHeight = 24;
+
+                const rowConfigs = [
+                    { color: COLORS.gold, hp: 3, points: 300 },
+                    { color: COLORS.purple, hp: 2, points: 200 },
+                    { color: COLORS.magenta, hp: 2, points: 150 },
+                    { color: COLORS.cyan, hp: 1, points: 100 },
+                    { color: COLORS.green, hp: 1, points: 100 }
+                ];
+
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        // Add interesting geometric patterns on level 2+
+                        if (lvl % 2 === 0 && (r + c) % 5 === 0 && r > 0) continue;
+                        if (lvl % 3 === 0 && c === 4 && r % 2 === 1) continue;
+
+                        const configIndex = Math.min(
+                            Math.floor((r / rows) * rowConfigs.length),
+                            rowConfigs.length - 1
+                        );
+                        const cfg = rowConfigs[configIndex];
+
+                        // Scale brick durability slightly on higher levels
+                        const extraHp = lvl >= 3 && r === 0 ? 1 : 0;
+                        const maxHp = cfg.hp + extraHp;
+
+                        bricks.push({
+                            x: offsetLeft + c * (brickWidth + padding),
+                            y: offsetTop + r * (brickHeight + padding),
+                            width: brickWidth,
+                            height: brickHeight,
+                            color: cfg.color,
+                            hp: maxHp,
+                            maxHp: maxHp,
+                            points: cfg.points,
+                            hitFlash: 0
+                        });
+                    }
+                }
+            }
+
+            function startNewGame() {
+                score = 0;
+                level = 1;
+                lives = 3;
+                combo = 1;
+                activeEffects.expand = 0;
+                activeEffects.overdrive = 0;
+
+                buildLevel(level);
+                resetBallAndPaddle();
+                updateHUD();
+                hideOverlay();
+                gameState = "PLAYING";
+            }
+
+            function startNextLevel() {
+                level++;
+                activeEffects.expand = 0;
+                activeEffects.overdrive = 0;
+                buildLevel(level);
+                resetBallAndPaddle();
+                updateHUD();
+                hideOverlay();
+                gameState = "PLAYING";
+            }
+
+            // ============================================================================
+            // 6. PARTICLES, FLOATING TEXT & POWER-UPS
+            // ============================================================================
+            function spawnExplosion(x, y, color, count = 18) {
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 60 + Math.random() * 240;
+                    particles.push({
+                        x: x,
+                        y: y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        size: 2 + Math.random() * 3.5,
+                        color: color,
+                        alpha: 1,
+                        decay: 1.4 + Math.random() * 1.2
+                    });
+                }
+            }
+
+            function spawnFloatingText(x, y, text, color = COLORS.cyan) {
+                floatingTexts.push({
+                    x: x,
+                    y: y,
+                    text: text,
+                    color: color,
+                    alpha: 1,
+                    vy: -48
+                });
+            }
+
+            function maybeSpawnPowerUp(brick) {
+                // 24% drop chance
+                if (Math.random() > 0.24) return;
+                const type = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)];
+                powerUps.push({
+                    x: brick.x + brick.width / 2,
+                    y: brick.y + brick.height / 2,
+                    width: 34,
+                    height: 20,
+                    vy: 145,
+                    type: type,
+                    pulse: 0
+                });
+            }
+
+            function applyPowerUp(p) {
+                audio.powerUpCollect();
+                spawnFloatingText(p.x, p.y - 12, p.type.name, p.type.color);
+
+                if (p.type.id === "EXPAND") {
+                    activeEffects.expand = 12; // 12 seconds
+                    paddle.width = paddle.baseWidth * 1.48;
+                    paddle.x = Math.max(16, Math.min(LOGICAL_WIDTH - paddle.width - 16, paddle.x));
+                } else if (p.type.id === "OVERDRIVE") {
+                    activeEffects.overdrive = 8; // 8 seconds of plasma fireball
+                } else if (p.type.id === "LIFE") {
+                    lives = Math.min(lives + 1, 6);
+                    updateHUD();
+                } else if (p.type.id === "MULTIBALL") {
+                    const sourceBall = balls[0];
+                    if (sourceBall) {
+                        if (sourceBall.stuck) {
+                            launchStuckBalls();
+                        }
+                        const speed = sourceBall.speed;
+                        balls.push(
+                            createBall(sourceBall.x, sourceBall.y, -speed * 0.65, -speed * 0.75, false),
+                            createBall(sourceBall.x, sourceBall.y, speed * 0.65, -speed * 0.75, false)
+                        );
+                    }
+                }
+            }
+
+            function launchStuckBalls() {
+                let launched = false;
+                balls.forEach((b) => {
+                    if (b.stuck) {
+                        b.stuck = false;
+                        const angle = (Math.random() * 0.5 - 0.25) - Math.PI / 2;
+                        b.vx = Math.cos(angle) * b.speed;
+                        b.vy = Math.sin(angle) * b.speed;
+                        launched = true;
+                    }
+                });
+                if (launched) {
+                    audio.paddleHit();
+                    statusText.textContent = "OVERDRIVE ENGAGED // DESTROY ALL CORES";
+                }
+            }
+
+            // ============================================================================
+            // 7. HUD & OVERLAY MANAGEMENT
+            // ============================================================================
+            function updateHUD() {
+                hudScore.textContent = String(score).padStart(5, "0");
+                hudCombo.textContent = `${combo}x`;
+                hudLevel.textContent = String(level).padStart(2, "0");
+
+                if (score > highScore) {
+                    highScore = score;
+                    try {
+                        localStorage.setItem("neon_breaker_highscore", String(highScore));
+                    } catch (e) {}
+                }
+                hudHighScore.textContent = String(highScore).padStart(5, "0");
+
+                try {
+                    window.parent.postMessage({ type: "GAME_SCORE", score: score, highScore: highScore }, "*");
+                } catch (err) {}
+
+                // Render Lives Hearts
+                hudLives.innerHTML = "";
+                for (let i = 0; i < lives; i++) {
+                    const heart = document.createElement("i");
+                    heart.className = "fa-solid fa-heart drop-shadow-[0_0_6px_rgba(255,0,127,0.8)]";
+                    hudLives.appendChild(heart);
+                }
+            }
+
+            function updatePowerupHud() {
+                powerupHud.innerHTML = "";
+                if (activeEffects.expand > 0) {
+                    const pill = document.createElement("div");
+                    pill.className = "px-2.5 py-1 rounded-md bg-cyan-950/85 border border-cyan-400 text-cyan-300 font-cyber text-[11px] flex items-center gap-2 shadow-lg";
+                    pill.innerHTML = `<i class="fa-solid fa-arrows-left-right"></i> EXPAND: ${activeEffects.expand.toFixed(1)}s`;
+                    powerupHud.appendChild(pill);
+                }
+                if (activeEffects.overdrive > 0) {
+                    const pill = document.createElement("div");
+                    pill.className = "px-2.5 py-1 rounded-md bg-amber-950/85 border border-amber-400 text-amber-300 font-cyber text-[11px] flex items-center gap-2 shadow-lg";
+                    pill.innerHTML = `<i class="fa-solid fa-fire"></i> OVERDRIVE: ${activeEffects.overdrive.toFixed(1)}s`;
+                    powerupHud.appendChild(pill);
+                }
+            }
+
+            function showOverlay(mode) {
+                overlayModal.classList.remove("hidden");
+                if (mode === "START") {
+                    overlayBadge.textContent = "SYSTEM READY // V2.4";
+                    overlayTitle.textContent = "NEON BREAKER";
+                    overlaySubtitle.textContent = "OVERDRIVE PROTOCOL";
+                    overlayStats.classList.add("hidden");
+                    overlayStats.classList.remove("grid");
+                    overlayLegend.classList.remove("hidden");
+                    btnModalPrimary.textContent = "INITIALIZE SYSTEM";
+                } else if (mode === "PAUSED") {
+                    overlayBadge.textContent = "SYSTEM STANDBY";
+                    overlayTitle.textContent = "GAME PAUSED";
+                    overlaySubtitle.textContent = `SECTOR ${String(level).padStart(2, "0")} // SCORE ${score}`;
+                    overlayStats.classList.add("hidden");
+                    overlayStats.classList.remove("grid");
+                    overlayLegend.classList.remove("hidden");
+                    btnModalPrimary.textContent = "RESUME MISSION";
+                } else if (mode === "LEVEL_CLEAR") {
+                    overlayBadge.textContent = `SECTOR ${String(level).padStart(2, "0")} CLEARED`;
+                    overlayTitle.textContent = "SECTOR PURGED";
+                    overlaySubtitle.textContent = "WARP DRIVE CHARGED FOR NEXT WAVE";
+                    modalScore.textContent = score;
+                    modalHighScore.textContent = highScore;
+                    overlayStats.classList.remove("hidden");
+                    overlayStats.classList.add("grid");
+                    overlayLegend.classList.add("hidden");
+                    btnModalPrimary.textContent = `ENTER SECTOR ${String(level + 1).padStart(2, "0")}`;
+                } else if (mode === "GAME_OVER") {
+                    overlayBadge.textContent = "SIGNAL TERMINATED";
+                    overlayTitle.textContent = "SYSTEM FAILURE";
+                    overlaySubtitle.textContent = "ALL DEFENSIVE CORES DEPLETED";
+                    modalScore.textContent = score;
+                    modalHighScore.textContent = highScore;
+                    overlayStats.classList.remove("hidden");
+                    overlayStats.classList.add("grid");
+                    overlayLegend.classList.add("hidden");
+                    btnModalPrimary.textContent = "REBOOT SYSTEM";
+                }
+            }
+
+            function hideOverlay() {
+                overlayModal.classList.add("hidden");
+            }
+
+            function togglePause() {
+                if (gameState === "PLAYING") {
+                    gameState = "PAUSED";
+                    pauseIcon.className = "fa-solid fa-play text-xs sm:text-sm";
+                    showOverlay("PAUSED");
+                } else if (gameState === "PAUSED") {
+                    gameState = "PLAYING";
+                    pauseIcon.className = "fa-solid fa-pause text-xs sm:text-sm";
+                    hideOverlay();
+                }
+            }
+
+            // ============================================================================
+            // 8. PHYSICS & UPDATE LOOP
+            // ============================================================================
+            function update(dt) {
+                // Animate cyberpunk perspective floor grid
+                gridOffset = (gridOffset + dt * 38) % 40;
+
+                if (screenShake > 0) {
+                    screenShake = Math.max(0, screenShake - dt * 28);
+                }
+
+                if (gameState !== "PLAYING") return;
+
+                // Update timed power-ups
+                let hudDirty = false;
+                if (activeEffects.expand > 0) {
+                    activeEffects.expand = Math.max(0, activeEffects.expand - dt);
+                    hudDirty = true;
+                    if (activeEffects.expand === 0) {
+                        paddle.width = paddle.baseWidth;
+                    }
+                }
+                if (activeEffects.overdrive > 0) {
+                    activeEffects.overdrive = Math.max(0, activeEffects.overdrive - dt);
+                    hudDirty = true;
+                }
+                if (hudDirty || powerupHud.children.length > 0) {
+                    updatePowerupHud();
+                }
+
+                // 1. Move Paddle
+                const prevPaddleX = paddle.x;
+                if (keys.left) {
+                    paddle.x -= paddle.speed * dt;
+                    paddle.targetX = null;
+                }
+                if (keys.right) {
+                    paddle.x += paddle.speed * dt;
+                    paddle.targetX = null;
+                }
+                if (paddle.targetX !== null) {
+                    // Direct responsive interpolation towards mouse/touch position
+                    const desiredX = paddle.targetX - paddle.width / 2;
+                    paddle.x += (desiredX - paddle.x) * Math.min(1, dt * 28);
+                }
+
+                // Clamp paddle inside arena walls
+                const wallMargin = 16;
+                paddle.x = Math.max(wallMargin, Math.min(LOGICAL_WIDTH - paddle.width - wallMargin, paddle.x));
+                paddle.vx = (paddle.x - prevPaddleX) / Math.max(dt, 0.001);
+
+                // 2. Update Balls
+                const isOverdrive = activeEffects.overdrive > 0;
+
+                for (let i = balls.length - 1; i >= 0; i--) {
+                    const b = balls[i];
+
+                    if (b.stuck) {
+                        b.x = paddle.x + paddle.width / 2;
+                        b.y = paddle.y - b.radius - 2;
+                        b.trail = [];
+                        continue;
+                    }
+
+                    // Store motion trail
+                    b.trail.push({ x: b.x, y: b.y });
+                    if (b.trail.length > 10) b.trail.shift();
+
+                    b.x += b.vx * dt;
+                    b.y += b.vy * dt;
+
+                    // Left / Right Wall Collisions
+                    if (b.x - b.radius < wallMargin) {
+                        b.x = wallMargin + b.radius;
+                        b.vx = Math.abs(b.vx);
+                        audio.wallHit();
+                    } else if (b.x + b.radius > LOGICAL_WIDTH - wallMargin) {
+                        b.x = LOGICAL_WIDTH - wallMargin - b.radius;
+                        b.vx = -Math.abs(b.vx);
+                        audio.wallHit();
+                    }
+
+                    // Top Wall Collision
+                    if (b.y - b.radius < 16) {
+                        b.y = 16 + b.radius;
+                        b.vy = Math.abs(b.vy);
+                        audio.wallHit();
+                    }
+
+                    // Paddle Collision
+                    if (
+                        b.vy > 0 &&
+                        b.y + b.radius >= paddle.y &&
+                        b.y - b.radius <= paddle.y + paddle.height &&
+                        b.x >= paddle.x - b.radius &&
+                        b.x <= paddle.x + paddle.width + b.radius
+                    ) {
+                        // Compute hit offset from -1 (left edge) to +1 (right edge)
+                        const hitOffset = (b.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2);
+                        const clampedOffset = Math.max(-0.92, Math.min(0.92, hitOffset));
+                        const bounceAngle = clampedOffset * (Math.PI * 0.36); // Max ~65 deg
+
+                        // Add subtle speed boost & spin from paddle velocity
+                        b.speed = Math.min(b.speed + 4, 740);
+                        b.vx = Math.sin(bounceAngle) * b.speed + paddle.vx * 0.12;
+                        b.vy = -Math.cos(bounceAngle) * b.speed;
+
+                        // Normalize velocity to b.speed
+                        const mag = Math.hypot(b.vx, b.vy) || 1;
+                        b.vx = (b.vx / mag) * b.speed;
+                        b.vy = -Math.abs((b.vy / mag) * b.speed);
+
+                        b.y = paddle.y - b.radius - 1;
+                        combo = 1;
+                        updateHUD();
+                        audio.paddleHit();
+                        spawnExplosion(b.x, paddle.y, COLORS.cyan, 8);
+                    }
+
+                    // Brick Collisions
+                    for (let j = bricks.length - 1; j >= 0; j--) {
+                        const br = bricks[j];
+
+                        // AABB vs Circle check
+                        const closestX = Math.max(br.x, Math.min(b.x, br.x + br.width));
+                        const closestY = Math.max(br.y, Math.min(b.y, br.y + br.height));
+                        const dx = b.x - closestX;
+                        const dy = b.y - closestY;
+
+                        if (dx * dx + dy * dy <= b.radius * b.radius) {
+                            // If OVERDRIVE is active, smash right through without bouncing!
+                            if (!isOverdrive) {
+                                const overlapLeft = (b.x + b.radius) - br.x;
+                                const overlapRight = (br.x + br.width) - (b.x - b.radius);
+                                const overlapTop = (b.y + b.radius) - br.y;
+                                const overlapBottom = (br.y + br.height) - (b.y - b.radius);
+                                const minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
+
+                                if (minOverlap === overlapLeft || minOverlap === overlapRight) {
+                                    b.vx = -b.vx;
+                                } else {
+                                    b.vy = -b.vy;
+                                }
+                            }
+
+                            const damage = isOverdrive ? br.hp : 1;
+                            br.hp -= damage;
+                            br.hitFlash = 1;
+
+                            if (br.hp <= 0) {
+                                const pts = br.points * combo;
+                                score += pts;
+                                combo = Math.min(combo + 1, 12);
+                                updateHUD();
+
+                                if (isOverdrive) {
+                                    audio.overdriveSmash();
+                                } else {
+                                    audio.brickBreak(combo);
+                                }
+
+                                screenShake = Math.min(screenShake + 4.5, 11);
+                                spawnExplosion(
+                                    br.x + br.width / 2,
+                                    br.y + br.height / 2,
+                                    br.color,
+                                    20
+                                );
+                                spawnFloatingText(
+                                    br.x + br.width / 2,
+                                    br.y + br.height / 2,
+                                    `+${pts}${combo > 2 ? " x" + combo : ""}`,
+                                    br.color
+                                );
+                                maybeSpawnPowerUp(br);
+                                bricks.splice(j, 1);
+                            } else {
+                                audio.brickDamage();
+                                score += 25;
+                                updateHUD();
+                                spawnExplosion(b.x, b.y, br.color, 7);
+                            }
+
+                            break; // Only hit one brick per frame per ball
+                        }
+                    }
+
+                    // Bottom Pit Check
+                    if (b.y - b.radius > LOGICAL_HEIGHT) {
+                        balls.splice(i, 1);
+                    }
+                }
+
+                // Check if all balls lost
+                if (balls.length === 0) {
+                    lives--;
+                    combo = 1;
+                    activeEffects.overdrive = 0;
+                    activeEffects.expand = 0;
+                    updateHUD();
+                    updatePowerupHud();
+                    audio.lifeLost();
+                    screenShake = 12;
+
+                    if (lives <= 0) {
+                        gameState = "GAME_OVER";
+                        showOverlay("GAME_OVER");
+                    } else {
+                        resetBallAndPaddle();
+                    }
+                }
+
+                // Check if Level Cleared
+                if (bricks.length === 0 && gameState === "PLAYING") {
+                    audio.levelClear();
+                    gameState = "LEVEL_CLEAR";
+                    showOverlay("LEVEL_CLEAR");
+                }
+
+                // 3. Update Falling Power-Ups
+                for (let i = powerUps.length - 1; i >= 0; i--) {
+                    const p = powerUps[i];
+                    p.y += p.vy * dt;
+                    p.pulse += dt * 6;
+
+                    // Check collection with paddle
+                    if (
+                        p.x + p.width / 2 >= paddle.x &&
+                        p.x - p.width / 2 <= paddle.x + paddle.width &&
+                        p.y + p.height / 2 >= paddle.y &&
+                        p.y - p.height / 2 <= paddle.y + paddle.height
+                    ) {
+                        applyPowerUp(p);
+                        powerUps.splice(i, 1);
+                        continue;
+                    }
+
+                    if (p.y > LOGICAL_HEIGHT + 30) {
+                        powerUps.splice(i, 1);
+                    }
+                }
+
+                // 4. Update Particles
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const pt = particles[i];
+                    pt.x += pt.vx * dt;
+                    pt.y += pt.vy * dt;
+                    pt.vx *= 0.97;
+                    pt.vy *= 0.97;
+                    pt.alpha -= pt.decay * dt;
+                    if (pt.alpha <= 0) {
+                        particles.splice(i, 1);
+                    }
+                }
+
+                // 5. Update Floating Score Texts
+                for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                    const ft = floatingTexts[i];
+                    ft.y += ft.vy * dt;
+                    ft.alpha -= dt * 1.15;
+                    if (ft.alpha <= 0) {
+                        floatingTexts.splice(i, 1);
+                    }
+                }
+
+                // 6. Decay brick hit flash
+                for (let i = 0; i < bricks.length; i++) {
+                    if (bricks[i].hitFlash > 0) {
+                        bricks[i].hitFlash = Math.max(0, bricks[i].hitFlash - dt * 5);
+                    }
+                }
+            }
+
+            // ============================================================================
+            // 9. RENDERING ENGINE
+            // ============================================================================
+            function drawRoundedRect(x, y, w, h, r) {
+                ctx.beginPath();
+                ctx.moveTo(x + r, y);
+                ctx.lineTo(x + w - r, y);
+                ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+                ctx.lineTo(x + w, y + h - r);
+                ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+                ctx.lineTo(x + r, y + h);
+                ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+                ctx.lineTo(x, y + r);
+                ctx.quadraticCurveTo(x, y, x + r, y);
+                ctx.closePath();
+            }
+
+            function render() {
+                ctx.save();
+
+                // Apply screen shake if active
+                if (screenShake > 0) {
+                    const sx = (Math.random() - 0.5) * screenShake;
+                    const sy = (Math.random() - 0.5) * screenShake;
+                    ctx.translate(sx, sy);
+                }
+
+                // 1. Deep Cyberpunk Background
+                ctx.fillStyle = COLORS.bg;
+                ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+
+                // 2. Animated Perspective Neon Grid
+                ctx.save();
+                ctx.strokeStyle = "rgba(0, 243, 255, 0.08)";
+                ctx.lineWidth = 1;
+
+                // Vertical perspective lines
+                const horizonY = 140;
+                const centerX = LOGICAL_WIDTH / 2;
+                for (let i = -10; i <= 10; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(centerX + i * 35, horizonY);
+                    ctx.lineTo(centerX + i * 110, LOGICAL_HEIGHT);
+                    ctx.stroke();
+                }
+
+                // Moving horizontal scan grid lines
+                for (let y = horizonY; y < LOGICAL_HEIGHT; y += 36) {
+                    const drawY = y + (gridOffset % 36);
+                    if (drawY < LOGICAL_HEIGHT) {
+                        ctx.beginPath();
+                        ctx.moveTo(0, drawY);
+                        ctx.lineTo(LOGICAL_WIDTH, drawY);
+                        ctx.stroke();
+                    }
+                }
+                ctx.restore();
+
+                // 3. Arena Neon Border Frame
+                ctx.save();
+                ctx.strokeStyle = "rgba(0, 243, 255, 0.35)";
+                ctx.lineWidth = 2;
+                ctx.shadowColor = COLORS.cyan;
+                ctx.shadowBlur = 10;
+                ctx.strokeRect(14, 14, LOGICAL_WIDTH - 28, LOGICAL_HEIGHT - 20);
+                ctx.restore();
+
+                // 4. Render Bricks
+                for (let i = 0; i < bricks.length; i++) {
+                    const br = bricks[i];
+                    ctx.save();
+                    ctx.shadowColor = br.color;
+                    ctx.shadowBlur = 14;
+
+                    // Outer Neon Border
+                    ctx.fillStyle = br.hitFlash > 0 ? "#ffffff" : br.color;
+                    drawRoundedRect(br.x, br.y, br.width, br.height, 5);
+                    ctx.fill();
+
+                    // Inner Dark Core for Cyberpunk look
+                    ctx.fillStyle = "rgba(7, 8, 16, 0.65)";
+                    drawRoundedRect(br.x + 2.5, br.y + 2.5, br.width - 5, br.height - 5, 3.5);
+                    ctx.fill();
+
+                    // Health Bars inside multi-hit bricks
+                    if (br.maxHp > 1) {
+                        const segWidth = (br.width - 14) / br.maxHp;
+                        ctx.fillStyle = br.color;
+                        for (let h = 0; h < br.hp; h++) {
+                            ctx.fillRect(
+                                br.x + 7 + h * (segWidth + 2),
+                                br.y + br.height / 2 - 2,
+                                segWidth - 2,
+                                4
+                            );
+                        }
+                    }
+                    ctx.restore();
+                }
+
+                // 5. Render Falling Power-Ups
+                for (let i = 0; i < powerUps.length; i++) {
+                    const p = powerUps[i];
+                    ctx.save();
+                    const scale = 1 + Math.sin(p.pulse) * 0.08;
+                    ctx.translate(p.x, p.y);
+                    ctx.scale(scale, scale);
+
+                    ctx.shadowColor = p.type.color;
+                    ctx.shadowBlur = 15;
+                    ctx.fillStyle = "rgba(10, 14, 28, 0.92)";
+                    ctx.strokeStyle = p.type.color;
+                    ctx.lineWidth = 2;
+
+                    drawRoundedRect(-p.width / 2, -p.height / 2, p.width, p.height, 6);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.fillStyle = "#ffffff";
+                    ctx.font = "900 11px 'Orbitron', sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.fillText(p.type.label, 0, 1);
+                    ctx.restore();
+                }
+
+                // 6. Render Paddle
+                ctx.save();
+                const paddleColor = activeEffects.overdrive > 0 ? COLORS.gold : COLORS.cyan;
+                ctx.shadowColor = paddleColor;
+                ctx.shadowBlur = 18;
+                ctx.fillStyle = paddleColor;
+                drawRoundedRect(paddle.x, paddle.y, paddle.width, paddle.height, 8);
+                ctx.fill();
+
+                // Paddle inner core accent
+                ctx.fillStyle = "#ffffff";
+                drawRoundedRect(paddle.x + 12, paddle.y + 4, paddle.width - 24, 4, 2);
+                ctx.fill();
+                ctx.restore();
+
+                // 7. Render Balls & Motion Trails
+                const isOverdrive = activeEffects.overdrive > 0;
+                const ballColor = isOverdrive ? COLORS.gold : COLORS.cyan;
+
+                for (let i = 0; i < balls.length; i++) {
+                    const b = balls[i];
+
+                    // Motion Trail
+                    for (let t = 0; t < b.trail.length; t++) {
+                        const pos = b.trail[t];
+                        const ratio = (t + 1) / b.trail.length;
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.arc(pos.x, pos.y, b.radius * ratio * 0.85, 0, Math.PI * 2);
+                        ctx.fillStyle = isOverdrive
+                            ? `rgba(255, 204, 0, ${ratio * 0.45})`
+                            : `rgba(0, 243, 255, ${ratio * 0.4})`;
+                        ctx.fill();
+                        ctx.restore();
+                    }
+
+                    // Main Glowing Ball
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+                    ctx.shadowColor = ballColor;
+                    ctx.shadowBlur = isOverdrive ? 24 : 16;
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fill();
+                    ctx.lineWidth = 2.5;
+                    ctx.strokeStyle = ballColor;
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                // 8. Render Particles
+                for (let i = 0; i < particles.length; i++) {
+                    const pt = particles[i];
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0, pt.alpha);
+                    ctx.shadowColor = pt.color;
+                    ctx.shadowBlur = 10;
+                    ctx.fillStyle = pt.color;
+                    ctx.fillRect(pt.x - pt.size / 2, pt.y - pt.size / 2, pt.size, pt.size);
+                    ctx.restore();
+                }
+
+                // 9. Render Floating Score Popups
+                for (let i = 0; i < floatingTexts.length; i++) {
+                    const ft = floatingTexts[i];
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0, ft.alpha);
+                    ctx.font = "700 14px 'Orbitron', sans-serif";
+                    ctx.fillStyle = ft.color;
+                    ctx.shadowColor = ft.color;
+                    ctx.shadowBlur = 8;
+                    ctx.textAlign = "center";
+                    ctx.fillText(ft.text, ft.x, ft.y);
+                    ctx.restore();
+                }
+
+                ctx.restore();
+            }
+
+            // ============================================================================
+            // 10. RESPONSIVE CANVAS SCALING & COORDINATE MAPPING
+            // ============================================================================
+            function resizeCanvas() {
+                const rect = container.getBoundingClientRect();
+                const dpr = window.devicePixelRatio || 1;
+
+                // Maintain 16:10 logical aspect ratio inside available container
+                const targetAspect = LOGICAL_WIDTH / LOGICAL_HEIGHT;
+                let drawWidth = rect.width;
+                let drawHeight = rect.height;
+
+                if (drawWidth / drawHeight > targetAspect) {
+                    drawWidth = drawHeight * targetAspect;
+                } else {
+                    drawHeight = drawWidth / targetAspect;
+                }
+
+                canvas.style.width = `${drawWidth}px`;
+                canvas.style.height = `${drawHeight}px`;
+                canvas.width = Math.floor(drawWidth * dpr);
+                canvas.height = Math.floor(drawHeight * dpr);
+
+                const scaleX = canvas.width / LOGICAL_WIDTH;
+                const scaleY = canvas.height / LOGICAL_HEIGHT;
+                ctx.setTransform(scaleX, 0, 0, scaleY, 0, 0);
+
+                render();
+            }
+
+            function clientToLogicalX(clientX) {
+                const rect = canvas.getBoundingClientRect();
+                const relX = clientX - rect.left;
+                return (relX / rect.width) * LOGICAL_WIDTH;
+            }
+
+            // ============================================================================
+            // 11. INPUT LISTENERS (Keyboard, Mouse, Touch - Portfolio Iframe Safe)
+            // ============================================================================
+            window.addEventListener("keydown", (e) => {
+                // Prevent arrow keys & spacebar from scrolling parent portfolio page
+                if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Space", " "].includes(e.key) || e.code === "Space") {
+                    e.preventDefault();
+                }
+
+                if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
+                    keys.left = true;
+                } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
+                    keys.right = true;
+                } else if (e.code === "Space" || e.key === " ") {
+                    if (gameState === "START" || gameState === "GAME_OVER") {
+                        startNewGame();
+                    } else if (gameState === "LEVEL_CLEAR") {
+                        startNextLevel();
+                    } else if (gameState === "PLAYING") {
+                        const hasStuck = balls.some((b) => b.stuck);
+                        if (hasStuck) {
+                            launchStuckBalls();
+                        } else {
+                            togglePause();
+                        }
+                    } else if (gameState === "PAUSED") {
+                        togglePause();
+                    }
+                } else if (e.key === "p" || e.key === "P" || e.key === "Escape") {
+                    togglePause();
+                } else if (e.key === "m" || e.key === "M") {
+                    const isMuted = audio.toggleMute();
+                    muteIcon.className = isMuted
+                        ? "fa-solid fa-volume-xmark text-xs sm:text-sm text-pink-500"
+                        : "fa-solid fa-volume-high text-xs sm:text-sm";
+                } else if (e.key === "r" || e.key === "R") {
+                    startNewGame();
+                }
+            }, { passive: false });
+
+            window.addEventListener("keyup", (e) => {
+                if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
+                    keys.left = false;
+                } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
+                    keys.right = false;
+                }
+            });
+
+            // Mouse tracking & click to launch
+            canvas.addEventListener("mousemove", (e) => {
+                if (gameState === "PLAYING") {
+                    paddle.targetX = clientToLogicalX(e.clientX);
+                }
+            });
+
+            canvas.addEventListener("mousedown", (e) => {
+                if (gameState === "PLAYING") {
+                    paddle.targetX = clientToLogicalX(e.clientX);
+                    launchStuckBalls();
+                }
+            });
+
+            // Mobile Touch Drag & Tap to Launch
+            canvas.addEventListener("touchstart", (e) => {
+                e.preventDefault();
+                if (e.touches.length > 0 && gameState === "PLAYING") {
+                    paddle.targetX = clientToLogicalX(e.touches[0].clientX);
+                    launchStuckBalls();
+                }
+            }, { passive: false });
+
+            canvas.addEventListener("touchmove", (e) => {
+                e.preventDefault();
+                if (e.touches.length > 0 && gameState === "PLAYING") {
+                    paddle.targetX = clientToLogicalX(e.touches[0].clientX);
+                }
+            }, { passive: false });
+
+            // UI Button Handlers
+            btnModalPrimary.addEventListener("click", () => {
+                audio.init();
+                if (gameState === "START" || gameState === "GAME_OVER") {
+                    startNewGame();
+                } else if (gameState === "PAUSED") {
+                    togglePause();
+                } else if (gameState === "LEVEL_CLEAR") {
+                    startNextLevel();
+                }
+            });
+
+            btnLaunch.addEventListener("click", () => {
+                audio.init();
+                if (gameState === "PLAYING") {
+                    launchStuckBalls();
+                }
+            });
+
+            btnPause.addEventListener("click", () => {
+                togglePause();
+            });
+
+            btnMute.addEventListener("click", () => {
+                const isMuted = audio.toggleMute();
+                muteIcon.className = isMuted
+                    ? "fa-solid fa-volume-xmark text-xs sm:text-sm text-pink-500"
+                    : "fa-solid fa-volume-high text-xs sm:text-sm";
+            });
+
+            btnRestart.addEventListener("click", () => {
+                audio.init();
+                startNewGame();
+            });
+
+            window.addEventListener("message", (event) => {
+                if (event.data && event.data.type === "RESTART_GAME") {
+                    audio.init();
+                    startNewGame();
+                }
+            });
+
+            window.addEventListener("resize", resizeCanvas);
+
+            // ============================================================================
+            // 12. MAIN 60FPS ANIMATION LOOP
+            // ============================================================================
+            let lastTime = performance.now();
+
+            function gameLoop(now) {
+                const dt = Math.min((now - lastTime) / 1000, 0.05);
+                lastTime = now;
+
+                update(dt);
+                render();
+
+                requestAnimationFrame(gameLoop);
+            }
+
+            window.onload = function () {
+                buildLevel(1);
+                resetBallAndPaddle();
+                updateHUD();
+                resizeCanvas();
+                showOverlay("START");
+                requestAnimationFrame(gameLoop);
+            };
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Astro Dodger</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      background: #090d16;
+      color: #e2e8f0;
+      font-family: 'JetBrains Mono', monospace, -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    #game-container {
+      position: relative;
+      width: 100%;
+      max-width: 500px;
+      aspect-ratio: 9 / 14;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      background: #060913;
+      border: 2px solid #1e293b;
+      border-radius: 12px;
+      box-shadow: 0 0 35px rgba(56, 189, 248, 0.15), inset 0 0 25px rgba(0, 0, 0, 0.85);
+      display: block;
+      cursor: crosshair;
+    }
+    .hud {
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .hud-badge {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      padding: 4px 10px;
+      border-radius: 6px;
+      backdrop-filter: blur(4px);
+    }
+    .val-cyan {
+      color: #38bdf8;
+      font-weight: bold;
+    }
+    .val-amber {
+      color: #fbbf24;
+      font-weight: bold;
+    }
+    .mobile-hint {
+      margin-top: 8px;
+      font-size: 11px;
+      color: #64748b;
+      display: none;
+    }
+    @media (pointer: coarse), (max-width: 768px) {
+      .mobile-hint {
+        display: block;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="canvas" width="450" height="700"></canvas>
+    <div class="hud">
+      <div class="hud-badge">SCORE: <span id="score-display" class="val-cyan">0</span></div>
+      <div class="hud-badge">DIST: <span id="dist-display" class="val-amber">0m</span></div>
+    </div>
+  </div>
+  <div class="mobile-hint">Steer with finger drag or Arrow / WASD keys</div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const scoreDisplay = document.getElementById('score-display');
+    const distDisplay = document.getElementById('dist-display');
+
+    // Audio synthesis
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    function playSound(freq, type = 'sine', duration = 0.08) {
+      try {
+        if (!audioCtx) audioCtx = new AudioContext();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    // Stars background
+    const bgStars = [];
+    for (let i = 0; i < 70; i++) {
+      bgStars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 1.8 + 0.5,
+        speed: Math.random() * 2 + 0.8,
+        alpha: Math.random() * 0.7 + 0.3
+      });
+    }
+
+    // Player ship
+    const player = {
+      x: canvas.width / 2,
+      y: canvas.height - 90,
+      width: 26,
+      height: 34,
+      shield: 1,
+      targetX: canvas.width / 2,
+      targetY: canvas.height - 90,
+    };
+
+    let obstacles = [];
+    let stars = []; // collectibles
+    let particles = [];
+    let thrusterParticles = [];
+
+    let score = 0;
+    let distance = 0;
+    let gameOver = false;
+    let lastSpawn = 0;
+    let spawnRate = 55; // frames between obstacles
+    let frameCount = 0;
+
+    function initGame() {
+      player.x = canvas.width / 2;
+      player.y = canvas.height - 90;
+      player.targetX = player.x;
+      player.targetY = player.y;
+      player.shield = 1;
+      obstacles = [];
+      stars = [];
+      particles = [];
+      thrusterParticles = [];
+      score = 0;
+      distance = 0;
+      gameOver = false;
+      frameCount = 0;
+      spawnRate = 55;
+      updateUI();
+      window.parent.postMessage({ type: 'GAME_SCORE', score: 0, distance: 0, gameOver: false }, '*');
+    }
+
+    function spawnObstacle() {
+      const types = ['asteroid', 'laser'];
+      const type = Math.random() > 0.3 ? 'asteroid' : 'laser';
+      const size = type === 'asteroid' ? Math.random() * 24 + 18 : Math.random() * 60 + 40;
+      const x = Math.random() * (canvas.width - size);
+      const speed = Math.random() * 2.8 + 3.2 + Math.min(distance / 800, 3.5);
+
+      obstacles.push({
+        type,
+        x,
+        y: -size - 10,
+        size,
+        height: type === 'laser' ? 14 : size,
+        speed,
+        rot: 0,
+        rotSpeed: (Math.random() - 0.5) * 0.08,
+        color: type === 'asteroid' ? '#f43f5e' : '#ec4899'
+      });
+    }
+
+    function spawnCollectible() {
+      stars.push({
+        x: Math.random() * (canvas.width - 24) + 12,
+        y: -20,
+        radius: 8,
+        speed: 3.2,
+        rot: 0
+      });
+    }
+
+    function createExplosion(x, y, color = '#f43f5e') {
+      for (let i = 0; i < 24; i++) {
+        particles.push({
+          x,
+          y,
+          vx: (Math.random() - 0.5) * 8,
+          vy: (Math.random() - 0.5) * 8,
+          size: Math.random() * 3 + 1.5,
+          color,
+          life: 1.0
+        });
+      }
+    }
+
+    function updateUI() {
+      scoreDisplay.innerText = score;
+      distDisplay.innerText = `${Math.floor(distance)}m`;
+    }
+
+    function update() {
+      frameCount++;
+
+      // Background stars
+      bgStars.forEach(s => {
+        s.y += s.speed * (gameOver ? 0.3 : 1.4);
+        if (s.y > canvas.height) {
+          s.y = 0;
+          s.x = Math.random() * canvas.width;
+        }
+      });
+
+      if (!gameOver) {
+        distance += 0.4;
+        score += 1;
+
+        if (frameCount % 60 === 0) {
+          updateUI();
+          window.parent.postMessage({ type: 'GAME_SCORE', score, distance: Math.floor(distance), gameOver: false }, '*');
+        }
+
+        // Smooth ship lerp to target
+        player.x += (player.targetX - player.x) * 0.22;
+        player.y += (player.targetY - player.y) * 0.22;
+
+        // Keep inside bounds
+        player.x = Math.max(player.width, Math.min(canvas.width - player.width, player.x));
+        player.y = Math.max(player.height, Math.min(canvas.height - player.height, player.y));
+
+        // Thruster particles
+        thrusterParticles.push({
+          x: player.x + (Math.random() - 0.5) * 6,
+          y: player.y + player.height / 2,
+          vx: (Math.random() - 0.5) * 1.5,
+          vy: Math.random() * 3 + 2,
+          size: Math.random() * 3 + 2,
+          life: 0.8
+        });
+
+        // Spawn obstacles
+        if (frameCount - lastSpawn > spawnRate) {
+          spawnObstacle();
+          if (Math.random() > 0.6) spawnCollectible();
+          lastSpawn = frameCount;
+          if (spawnRate > 22 && frameCount % 120 === 0) spawnRate--;
+        }
+
+        // Update obstacles
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+          const obs = obstacles[i];
+          obs.y += obs.speed;
+          obs.rot += obs.rotSpeed;
+
+          // Collision detection with player
+          const distToShip = Math.hypot(obs.x + obs.size / 2 - player.x, obs.y + obs.height / 2 - player.y);
+          if (distToShip < (obs.size / 2 + player.width / 2 - 2)) {
+            // Hit!
+            createExplosion(player.x, player.y);
+            playSound(130, 'sawtooth', 0.4);
+            gameOver = true;
+            window.parent.postMessage({ type: 'GAME_SCORE', score, distance: Math.floor(distance), gameOver: true }, '*');
+            break;
+          }
+
+          if (obs.y > canvas.height + 60) {
+            obstacles.splice(i, 1);
+          }
+        }
+
+        // Update collectibles
+        for (let i = stars.length - 1; i >= 0; i--) {
+          const st = stars[i];
+          st.y += st.speed;
+          st.rot += 0.05;
+
+          const dist = Math.hypot(st.x - player.x, st.y - player.y);
+          if (dist < st.radius + player.width / 2) {
+            // Collected star
+            score += 150;
+            updateUI();
+            createExplosion(st.x, st.y, '#fbbf24');
+            playSound(660, 'sine', 0.12);
+            stars.splice(i, 1);
+            continue;
+          }
+
+          if (st.y > canvas.height + 30) {
+            stars.splice(i, 1);
+          }
+        }
+      }
+
+      // Update particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.035;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+
+      for (let i = thrusterParticles.length - 1; i >= 0; i--) {
+        const tp = thrusterParticles[i];
+        tp.x += tp.vx;
+        tp.y += tp.vy;
+        tp.life -= 0.07;
+        if (tp.life <= 0) thrusterParticles.splice(i, 1);
+      }
+
+      draw();
+      requestAnimationFrame(update);
+    }
+
+    function draw() {
+      ctx.fillStyle = '#060913';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Stars
+      bgStars.forEach(s => {
+        ctx.fillStyle = `rgba(255, 255, 255, ${s.alpha})`;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Thruster exhaust
+      thrusterParticles.forEach(tp => {
+        ctx.fillStyle = `rgba(56, 189, 248, ${tp.life * 0.8})`;
+        ctx.beginPath();
+        ctx.arc(tp.x, tp.y, tp.size * tp.life, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Draw collectibles
+      stars.forEach(st => {
+        ctx.save();
+        ctx.translate(st.x, st.y);
+        ctx.rotate(st.rot);
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = '#fbbf24';
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        for (let i = 0; i < 5; i++) {
+          ctx.lineTo(Math.cos((18 + i * 72) * Math.PI / 180) * st.radius, -Math.sin((18 + i * 72) * Math.PI / 180) * st.radius);
+          ctx.lineTo(Math.cos((54 + i * 72) * Math.PI / 180) * (st.radius / 2), -Math.sin((54 + i * 72) * Math.PI / 180) * (st.radius / 2));
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.restore();
+      });
+
+      // Draw obstacles
+      obstacles.forEach(obs => {
+        ctx.save();
+        ctx.translate(obs.x + obs.size / 2, obs.y + obs.height / 2);
+        ctx.rotate(obs.rot);
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = obs.color;
+        ctx.fillStyle = obs.color;
+
+        if (obs.type === 'asteroid') {
+          ctx.beginPath();
+          ctx.arc(0, 0, obs.size / 2, 0, Math.PI * 2);
+          ctx.fill();
+          // Asteroid crater
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+          ctx.beginPath();
+          ctx.arc(-obs.size / 6, -obs.size / 6, obs.size / 5, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.beginPath();
+          ctx.roundRect ? ctx.roundRect(-obs.size / 2, -obs.height / 2, obs.size, obs.height, 4) : ctx.rect(-obs.size / 2, -obs.height / 2, obs.size, obs.height);
+          ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+        ctx.restore();
+      });
+
+      // Draw player ship
+      if (!gameOver) {
+        ctx.save();
+        ctx.translate(player.x, player.y);
+        ctx.shadowBlur = 14;
+        ctx.shadowColor = '#38bdf8';
+
+        // Cockpit & wings
+        ctx.fillStyle = '#38bdf8';
+        ctx.beginPath();
+        ctx.moveTo(0, -player.height / 2);
+        ctx.lineTo(player.width / 2, player.height / 2);
+        ctx.lineTo(0, player.height / 3);
+        ctx.lineTo(-player.width / 2, player.height / 2);
+        ctx.closePath();
+        ctx.fill();
+
+        // Canopy
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(0, -player.height / 8, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.restore();
+      }
+
+      // Draw particles
+      particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+      });
+
+      // Game Over Screen
+      if (gameOver) {
+        ctx.fillStyle = 'rgba(6, 9, 19, 0.88)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.textAlign = 'center';
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#f43f5e';
+        ctx.fillStyle = '#f43f5e';
+        ctx.font = 'bold 32px "JetBrains Mono", monospace';
+        ctx.fillText('HULL BREACHED', canvas.width / 2, canvas.height / 2 - 30);
+
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = '16px "JetBrains Mono", monospace';
+        ctx.fillText(`TOTAL SCORE: ${score}`, canvas.width / 2, canvas.height / 2 + 15);
+        ctx.fillText(`DISTANCE: ${Math.floor(distance)}m`, canvas.width / 2, canvas.height / 2 + 42);
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = '13px "JetBrains Mono", monospace';
+        ctx.fillText('PRESS SPACEBAR OR RESTART TO FLY AGAIN', canvas.width / 2, canvas.height / 2 + 85);
+      }
+    }
+
+    // Controls: Mouse
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      player.targetX = (e.clientX - rect.left) * scaleX;
+      player.targetY = (e.clientY - rect.top) * scaleY;
+    });
+
+    canvas.addEventListener('click', () => {
+      if (gameOver) initGame();
+    });
+
+    // Touch controls
+    canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      player.targetX = (e.touches[0].clientX - rect.left) * scaleX;
+      player.targetY = (e.touches[0].clientY - rect.top) * scaleY;
+    }, { passive: false });
+
+    canvas.addEventListener('touchstart', (e) => {
+      if (gameOver) {
+        initGame();
+      } else {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        player.targetX = (e.touches[0].clientX - rect.left) * scaleX;
+        player.targetY = (e.touches[0].clientY - rect.top) * scaleY;
+      }
+    }, { passive: true });
+
+    // Keyboard controls
+    const keyState = {};
+    window.addEventListener('keydown', (e) => {
+      const keys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space'];
+      if (keys.includes(e.code)) e.preventDefault();
+
+      keyState[e.code] = true;
+      if (e.code === 'Space' && gameOver) initGame();
+    });
+
+    window.addEventListener('keyup', (e) => {
+      keyState[e.code] = false;
+    });
+
+    // Keyboard polling in update
+    setInterval(() => {
+      if (gameOver) return;
+      const step = 9;
+      if (keyState['ArrowLeft'] || keyState['KeyA']) player.targetX = Math.max(player.width, player.targetX - step);
+      if (keyState['ArrowRight'] || keyState['KeyD']) player.targetX = Math.min(canvas.width - player.width, player.targetX + step);
+      if (keyState['ArrowUp'] || keyState['KeyW']) player.targetY = Math.max(player.height, player.targetY - step);
+      if (keyState['ArrowDown'] || keyState['KeyS']) player.targetY = Math.min(canvas.height - player.height, player.targetY + step);
+    }, 16);
+
+    // Message listener for restart from parent
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'RESTART_GAME') {
+        initGame();
+      }
+    });
+
+    initGame();
+    requestAnimationFrame(update);
+  </script>
+</body>
+</html>

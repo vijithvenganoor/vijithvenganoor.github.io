@@ -3,6 +3,7 @@
 import React, { useRef, useMemo, Suspense } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useArcade } from '@/context/ArcadeContext';
 
 function FloatingDust({ count = 80 }: { count?: number }) {
   const meshRef = useRef<THREE.Points | null>(null);
@@ -19,8 +20,10 @@ function FloatingDust({ count = 80 }: { count?: number }) {
     return [pos, sc];
   }, [count]);
 
+  const { activeGame } = useArcade();
+
   useFrame((state, delta) => {
-    if (!meshRef.current) return;
+    if (!meshRef.current || activeGame) return;
     meshRef.current.rotation.y += delta * 0.03;
     meshRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.2) * 0.05;
 
@@ -73,8 +76,10 @@ function SageParticles({ count = 40 }: { count?: number }) {
     return pos;
   }, [count]);
 
+  const { activeGame } = useArcade();
+
   useFrame((_, delta) => {
-    if (!meshRef.current) return;
+    if (!meshRef.current || activeGame) return;
     meshRef.current.rotation.y -= delta * 0.02;
   });
 

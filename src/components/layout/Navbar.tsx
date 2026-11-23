@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Github, Linkedin, Menu, X, ArrowUpRight } from 'lucide-react';
+import { Github, Linkedin, Menu, X, ArrowUpRight, Gamepad2 } from 'lucide-react';
+import { useArcade } from '@/context/ArcadeContext';
 
 const NAV_LINKS = [
   { name: 'About', href: '#about' },
   { name: 'Engineering', href: '#engineering' },
   { name: 'Products', href: '#products' },
+  { name: 'Games', href: '#games', isArcade: true },
   { name: 'Life in Watercolor', href: '#stories' },
   { name: 'Contact', href: '#contact' },
 ];
@@ -15,6 +17,7 @@ const NAV_LINKS = [
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { openHub } = useArcade();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -55,15 +58,27 @@ export default function Navbar() {
 
         {/* Center Desktop Links */}
         <nav className="hidden md:flex items-center gap-1 p-1 rounded-full bg-parchment-200/70 border border-parchment-300/80 backdrop-blur-md shadow-sm">
-          {NAV_LINKS.map((link) => (
-            <a
-              key={link.name}
-              href={link.href}
-              className="px-4 py-1.5 text-xs font-mono font-medium text-charcoal-700 hover:text-charcoal-900 rounded-full hover:bg-parchment-50 transition-all duration-200"
-            >
-              {link.name}
-            </a>
-          ))}
+          {NAV_LINKS.map((link) =>
+            link.isArcade ? (
+              <button
+                key={link.name}
+                onClick={openHub}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-mono font-bold text-charcoal-800 hover:text-white rounded-full bg-terracotta-50 hover:bg-terracotta-600 border border-terracotta-200/60 hover:border-terracotta-600 shadow-sm transition-all duration-200"
+              >
+                <Gamepad2 className="w-3.5 h-3.5 text-terracotta-600 group-hover:text-white" />
+                <span>{link.name}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              </button>
+            ) : (
+              <a
+                key={link.name}
+                href={link.href}
+                className="px-4 py-1.5 text-xs font-mono font-medium text-charcoal-700 hover:text-charcoal-900 rounded-full hover:bg-parchment-50 transition-all duration-200"
+              >
+                {link.name}
+              </a>
+            )
+          )}
         </nav>
 
         {/* Right Action Buttons */}
@@ -102,16 +117,35 @@ export default function Navbar() {
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div className="md:hidden px-4 pt-3 pb-5 bg-parchment-100/95 backdrop-blur-xl border-b border-parchment-300 shadow-xl space-y-2">
-          {NAV_LINKS.map((link) => (
-            <a
-              key={link.name}
-              href={link.href}
-              onClick={() => setMobileMenuOpen(false)}
-              className="block px-4 py-2.5 rounded-lg text-sm font-mono font-medium text-charcoal-800 hover:bg-parchment-200 transition-colors"
-            >
-              {link.name}
-            </a>
-          ))}
+          {NAV_LINKS.map((link) =>
+            link.isArcade ? (
+              <button
+                key={link.name}
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  openHub();
+                }}
+                className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-mono font-bold text-terracotta-700 bg-terracotta-50 hover:bg-terracotta-100 transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  <Gamepad2 className="w-4 h-4 text-terracotta-600" />
+                  <span>{link.name} (Arcade)</span>
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-terracotta-600 text-white font-semibold">
+                  3 Games
+                </span>
+              </button>
+            ) : (
+              <a
+                key={link.name}
+                href={link.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-4 py-2.5 rounded-lg text-sm font-mono font-medium text-charcoal-800 hover:bg-parchment-200 transition-colors"
+              >
+                {link.name}
+              </a>
+            )
+          )}
           <div className="pt-2 flex items-center gap-3">
             <a
               href="https://github.com/vijithvenganoor"

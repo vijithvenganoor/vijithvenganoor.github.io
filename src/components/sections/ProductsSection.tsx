@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useArcade } from '@/context/ArcadeContext';
 import {
   Sparkles,
   ArrowUpRight,
@@ -177,6 +178,7 @@ const PRODUCTS: Product[] = [
 ];
 
 export default function ProductsSection() {
+  const { openHub, playGame } = useArcade();
   const [activeTab, setActiveTab] = useState<'all' | 'mobile' | 'fintech' | 'web' | 'opensource'>('all');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
@@ -186,7 +188,7 @@ export default function ProductsSection() {
   return (
     <section id="products" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative z-20">
       {/* Section Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
         <div className="space-y-3">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-terracotta-50 border border-terracotta-100 text-terracotta-600 text-xs font-mono font-semibold tracking-wider">
             <Sparkles className="w-3.5 h-3.5" />
@@ -223,6 +225,62 @@ export default function ProductsSection() {
               {tab.label}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* Interactive Mini-Games Arcade Banner */}
+      <div className="mb-10 glass-panel rounded-3xl p-6 sm:p-7 border border-terracotta-200/80 bg-gradient-to-r from-parchment-100 via-terracotta-50/40 to-sage-50/40 shadow-watercolor flex flex-col lg:flex-row items-center justify-between gap-6">
+        <div className="flex items-center gap-4">
+          <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-charcoal-900 text-cyan-400 flex items-center justify-center shadow-md shrink-0">
+            <Gamepad2 className="w-7 h-7" />
+          </div>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-terracotta-600">
+                HTML5 Canvas Arcade Lab
+              </span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            </div>
+            <h3 className="text-lg sm:text-xl font-extrabold text-charcoal-900">
+              Take a Break: Play 4 Built-In Mini-Games
+            </h3>
+            <p className="text-xs text-charcoal-600">
+              Cyberpunk Snake • Neon Brick Breaker • Astro Dodger • Neon Breaker. 60fps canvas physics, synthesized sound &amp; zero install.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <button
+            onClick={() => playGame('snake')}
+            className="px-3 py-1.5 rounded-xl bg-charcoal-900 hover:bg-terracotta-600 text-parchment-50 text-xs font-mono font-bold transition-colors shadow-sm"
+          >
+            🐍 Snake
+          </button>
+          <button
+            onClick={() => playGame('breakout')}
+            className="px-3 py-1.5 rounded-xl bg-charcoal-900 hover:bg-terracotta-600 text-parchment-50 text-xs font-mono font-bold transition-colors shadow-sm"
+          >
+            🧱 Breakout
+          </button>
+          <button
+            onClick={() => playGame('dodger')}
+            className="px-3 py-1.5 rounded-xl bg-charcoal-900 hover:bg-terracotta-600 text-parchment-50 text-xs font-mono font-bold transition-colors shadow-sm"
+          >
+            🚀 Dodger
+          </button>
+          <button
+            onClick={() => playGame('neon-breaker')}
+            className="px-3 py-1.5 rounded-xl bg-charcoal-900 hover:bg-fuchsia-600 text-parchment-50 text-xs font-mono font-bold transition-colors shadow-sm"
+          >
+            ⚡ Neon Breaker
+          </button>
+          <button
+            onClick={openHub}
+            className="px-3.5 py-1.5 rounded-xl bg-forest-700 hover:bg-forest-600 text-parchment-50 text-xs font-mono font-bold transition-colors shadow-sm"
+          >
+            Open Arcade Hub ↗
+          </button>
         </div>
       </div>
 

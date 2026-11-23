@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import SmoothScrollProvider from '@/components/providers/SmoothScrollProvider';
+import { ArcadeProvider } from '@/context/ArcadeContext';
+import ArcadeWindow from '@/components/games/ArcadeWindow';
 
 export const metadata: Metadata = {
   title: 'Vijith V S | Senior Software Engineer & Indie Product Builder',
@@ -73,8 +75,11 @@ export default function RootLayout({
     <html lang="en" className="scroll-smooth">
       <body className="antialiased selection:bg-terracotta-100 selection:text-terracotta-700 min-h-screen relative text-charcoal-900">
         <SmoothScrollProvider>
-          <div className="fixed inset-0 pointer-events-none studio-vignette z-10" />
-          <div className="relative z-20">{children}</div>
+          <ArcadeProvider>
+            <div className="fixed inset-0 pointer-events-none studio-vignette z-10" />
+            <div className="relative z-20">{children}</div>
+            <ArcadeWindow />
+          </ArcadeProvider>
         </SmoothScrollProvider>
       </body>
     </html>

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { Sparkles, Terminal, Cpu, ArrowDown, RefreshCw } from 'lucide-react';
+import { useArcade } from '@/context/ArcadeContext';
 
 export type CharacterState = 'working' | 'left' | 'right' | 'greeting' | 'pointing';
 
@@ -20,6 +21,7 @@ const HERO_IMAGES: Record<CharacterState, string> = {
 
 export default function HeroCharacterCanvas({ onExploreClick }: HeroCharacterCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const { activeGame } = useArcade();
   const [renderMode, setRenderMode] = useState<'2.5d' | 'frames'>('2.5d');
   const [activeState, setActiveState] = useState<CharacterState>('working');
   const [activeZone, setActiveZone] = useState<'left' | 'center' | 'right' | 'idle'>('idle');
@@ -98,7 +100,7 @@ export default function HeroCharacterCanvas({ onExploreClick }: HeroCharacterCan
   // Mouse move handler over hero
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      if (!containerRef.current) return;
+      if (!containerRef.current || activeGame) return;
       const rect = containerRef.current.getBoundingClientRect();
       const x = (e.clientX - rect.left) / rect.width;
       const y = (e.clientY - rect.top) / rect.height;
